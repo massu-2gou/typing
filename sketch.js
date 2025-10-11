@@ -1,4 +1,3 @@
-// --- ゲーム設定 ---
 const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
