@@ -7,6 +7,8 @@ let wordList; // 外部ファイルから読み込んだ単語リストを格納
 let meteors = []; // 隕石を管理する配列
 let score = 0;
 let stars = []; // 星空を管理する配列
+let hiraGuideElement; // ひらがなガイドのHTML要素
+let romajiGuideElement; // ローマ字ガイドのHTML要素
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
@@ -81,6 +83,10 @@ function setup() {
     const canvas = createCanvas(GAME_WIDTH, GAME_HEIGHT);
     canvas.parent('canvas-container');
 
+    // HTMLのガイド要素を取得
+    hiraGuideElement = select('#hira-guide');
+    romajiGuideElement = select('#romaji-guide');
+
     // wordListが正しく読み込めたか確認し、空行を除外する
     if (!wordList) { // preloadが失敗した場合のフォールバック
         wordList = [];
@@ -125,7 +131,7 @@ function draw() {
     if (gameState === GAME_STATE.PLAYING) {
         // プレイ中の処理
         handleMeteors();
-        drawTypingGuide(); // ★ ガイド表示関数を呼び出す
+        updateTypingGuide(); // ガイド表示を更新する
         drawScore();
         
         // 50万点でクリア
@@ -291,32 +297,33 @@ function keyPressed() {
 }
 
 // 画面下部にタイピングガイドを表示する関数
-function drawTypingGuide() {
-    if (meteors.length === 0) return;
+function updateTypingGuide() {
+    if (meteors.length === 0) {
+        // 隕石がないときはガイドを空にする
+        hiraGuideElement.html('');
+        romajiGuideElement.html('');
+        return;
+    }
 
     const meteor = meteors[0]; // 現在の隕石
+
+    // --- 1. お題（ひらがな）のガイドを描画 ---
+    const fullHira = meteor.fullWord;
+    const remainingHira = meteor.remainingWord;
+    const typedHira = fullHira.substring(0, fullHira.length - remainingHira.length);
+    const hiraHTML = `<span class="typed">${typedHira}</span><span class="untyped">${remainingHira}</span>`;
+    hiraGuideElement.html(hiraHTML);
+
+    // --- 2. ローマ字ガイドの描画 ---
     const fullGuide = meteor.guideRomaji;
-    
-    // 残りのひらがなから、残りのローマ字ガイド部分を生成
     const remainingGuide = buildGuideRomaji(meteor.remainingWord);
-    const typedGuide = fullGuide.slice(0, fullGuide.length - remainingGuide.length);
+    // remainingGuideが空文字列の場合にsliceがうまく動かないことがあるため、安全な方法で分割
+    const typedGuide = fullGuide.startsWith(remainingGuide) 
+        ? fullGuide.substring(0, fullGuide.length - remainingGuide.length)
+        : fullGuide; // 念の為のフォールバック
 
-    const guideY = height - 30;
-    textSize(24);
-
-    // 全体の幅を計算して、描画開始位置を決定
-    const totalWidth = textWidth(fullGuide);
-    let currentX = width / 2 - totalWidth / 2;
-
-    // 入力済みの部分（緑色）
-    textAlign(LEFT, BOTTOM); // 左揃えに変更
-    fill(100, 255, 100);
-    text(typedGuide, currentX, guideY);
-
-    // 未入力の部分（白色）
-    currentX += textWidth(typedGuide);
-    fill(255);
-    text(remainingGuide, currentX, guideY);
+    const romajiHTML = `<span class="typed">${typedGuide}</span><span class="untyped">${remainingGuide}</span>`;
+    romajiGuideElement.html(romajiHTML);
 }
 
 // スコアを画面に表示する
