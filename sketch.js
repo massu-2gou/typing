@@ -1,11 +1,11 @@
 // --- ゲーム設定 ---
+const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
 
 let wordList; // 外部ファイルから読み込んだ単語リストを格納する変数
 let meteors = []; // 隕石を管理する配列
 let score = 0;
-let inputBox;
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
@@ -81,6 +81,9 @@ function setup() {
     canvas.parent('canvas-container');
 
     // wordListが正しく読み込めたか確認し、空行を除外する
+    if (!wordList) { // preloadが失敗した場合のフォールバック
+        wordList = [];
+    }
     if (!wordList || wordList.length === 0) {
         console.error("単語リストの読み込みに失敗したか、リストが空です。");
         // エラーメッセージを画面に表示してゲームを停止
@@ -174,7 +177,8 @@ function createMeteor() {
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
         remainingWord: word, // これからタイプするべき残りの単語（例: 'じしん'）
         typedRomaji: '',     // 現在入力途中のローマ字（例: 'j'）
-        nextRomajiOptions: hiraganaToRomaji(word).romajiOptions, // 次に打つべきローマ字の選択肢（例: ['ji', 'zi']）
+        // hiraganaToRomajiがnullを返す可能性に対処
+        nextRomajiOptions: (hiraganaToRomaji(word) || { romajiOptions: [] }).romajiOptions,
 
         x: x,
         y: -25, // 画面の上からスタート
@@ -182,46 +186,58 @@ function createMeteor() {
     });
 }
 
-// プレイヤーの入力を処理する
-function handleInput(event) {
-    const typedWord = inputBox.value();
-    
-    // 最も下にある隕石からチェック（一番狙いやすい隕石を優先）
+// キーが押されたときにp5.jsによって自動的に呼ばれる関数
+function keyPressed() {
+    // ゲームプレイ中以外、またはSHIFTキーなどの特殊キーの場合は何もしない
+    if (gameState !== GAME_STATE.PLAYING || key.length > 1) {
+        return;
+    }
+
+    // 押されたキーは小文字として扱う
+    const typedChar = key.toLowerCase();
+
+    let anyMatch = false;
+
+    // 画面上のすべての隕石をチェック
     for (let i = meteors.length - 1; i >= 0; i--) {
         const meteor = meteors[i];
-        const newTypedRomaji = meteor.typedRomaji + typedWord;
+        const newTypedRomaji = meteor.typedRomaji + typedChar;
 
-        let matched = false;
+        let partialMatch = false;
         for (const option of meteor.nextRomajiOptions) {
-            if (option === newTypedRomaji) { // ローマ字が完全に一致
+            if (option === newTypedRomaji) { // ローマ字が完全に一致した場合
                 const conversion = hiraganaToRomaji(meteor.remainingWord);
                 meteor.remainingWord = conversion.remainingHira;
                 meteor.typedRomaji = '';
 
-                if (meteor.remainingWord.length === 0) { // 単語をすべて打ち終えた
+                if (meteor.remainingWord.length === 0) { // 単語をすべて打ち終えた場合
                     score += meteor.fullWord.length * 1000;
                     meteors.splice(i, 1); // 隕石を消す
-                } else { // 次の文字へ
+                } else { // 次のひらがなへ進む
                     meteor.nextRomajiOptions = hiraganaToRomaji(meteor.remainingWord).romajiOptions;
                 }
-                matched = true;
+                anyMatch = true;
                 break;
-            } else if (option.startsWith(newTypedRomaji)) { // ローマ字の途中まで一致
+            } else if (option.startsWith(newTypedRomaji)) { // ローマ字の途中まで一致した場合
                 meteor.typedRomaji = newTypedRomaji;
-                matched = true;
+                partialMatch = true;
+                anyMatch = true;
                 break;
             }
         }
-
-        if (matched) {
-            // 一致する隕石が見つかったら、他の隕石はチェックしない
-            inputBox.value(''); // 入力ボックスをクリア
-            return;
+        if (partialMatch) {
+            // 途中まで一致する隕石があったら、他の隕石はもうチェックしない
+            // （例：「s」と打った時に「sushi」と「sakana」の両方が反応しないように）
+            break;
         }
     }
 
-    // どの隕石のどのパターンにも一致しなかった場合、入力をリセット
-    inputBox.value('');
+    // どの隕石とも全く一致しなかった場合（タイプミス）、すべての隕石の入力をリセット
+    if (!anyMatch) {
+        for (const meteor of meteors) {
+            meteor.typedRomaji = '';
+        }
+    }
 }
 
 // スコアを画面に表示する
