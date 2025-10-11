@@ -160,3 +160,4 @@ function drawGameMessage(mainText, subText) {
     text(subText, width / 2, height / 2 + 30);
 }
 
+
