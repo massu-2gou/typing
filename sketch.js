@@ -3,8 +3,7 @@ const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
 
-let wordListLv1 = []; // レベル1の単語リスト
-let wordListLv2 = []; // レベル2の単語リスト
+let wordLists = []; // 全レベルの単語リストを格納する配列
 let meteors = []; // 隕石を管理する配列
 let score = 0;
 let stars = []; // 星空を管理する配列
@@ -101,20 +100,13 @@ function setup() {
     romajiGuideElement = select('#romaji-guide');
 
     // 難易度選択ボタンの処理
-    const startScreen = select('#start-screen');
-    select('#level1-btn').mousePressed(() => {
-        currentLevel = 1;
-        gameState = GAME_STATE.PLAYING;
-        hiraGuideElement.show();
-        romajiGuideElement.show();
-        startScreen.hide();
-    });
-    select('#level2-btn').mousePressed(() => {
-        currentLevel = 2;
-        gameState = GAME_STATE.PLAYING;
-        hiraGuideElement.show();
-        romajiGuideElement.show();
-        startScreen.hide();
+    const levelButtons = selectAll('.level-btn');
+    levelButtons.forEach(button => {
+        button.mousePressed(() => {
+            // ボタンのdata-level属性からレベル番号を取得
+            const level = parseInt(button.attribute('data-level'), 10);
+            startGame(level);
+        });
     });
 
     // ガイドを最初は非表示に
@@ -135,7 +127,7 @@ function setup() {
     frameRate(60);
     
     // テキストのスタイル設定
-    textFont('DotGothic16');
+    textFont('Press Start 2P');
     textAlign(CENTER, CENTER);
 }
 
@@ -171,16 +163,18 @@ function draw() {
 
 // スプレッドシートから読み込んだデータを解析する関数
 function parseWords(data) {
+    // 各行をループ
     for (const line of data) {
         const words = line.split(',');
-        const word1 = words[0] ? words[0].trim() : '';
-        const word2 = words[1] ? words[1].trim() : '';
-
-        if (word1) {
-            wordListLv1.push(word1);
-        }
-        if (word2) {
-            wordListLv2.push(word2);
+        // 各列（レベル）をループ
+        for (let i = 0; i < words.length; i++) {
+            if (!wordLists[i]) {
+                wordLists[i] = []; // 対応するレベルの配列がなければ作成
+            }
+            const word = words[i].trim();
+            if (word) {
+                wordLists[i].push(word);
+            }
         }
     }
 }
@@ -230,7 +224,8 @@ function handleMeteors() {
 
 // 新しい隕石を作成する
 function createMeteor() {
-    const targetWordList = (currentLevel === 1) ? wordListLv1 : wordListLv2;
+    // currentLevelは1から始まるので、配列のインデックスは-1する
+    const targetWordList = wordLists[currentLevel - 1] || [];
 
     // もし単語リストが空なら何もしない
     if (targetWordList.length === 0) return;
@@ -399,7 +394,7 @@ function drawGameMessage(mainText, subText) {
     text(subText, width / 2, height / 2 + 20);
 
     textSize(16);
-    text("クリックしてもう一度", width / 2, height / 2 + REPLAY_TEXT_Y_OFFSET);
+    text("Click to Replay", width / 2, height / 2 + 60);
 }
 
 // ゲームをリセットする関数
