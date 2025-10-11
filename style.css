@@ -1,0 +1,34 @@
+body {
+    font-family: sans-serif;
+    background-color: #111;
+    color: #fff;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    color: #00ffff; /* シアン */
+}
+
+/* ゲーム画面のコンテナ */
+#canvas-container {
+    margin: 20px auto;
+    border: 2px solid #00ffff;
+    width: fit-content; /* キャンバスのサイズに合わせる */
+}
+
+/* 入力ボックスのスタイル */
+#input-box {
+    width: 300px;
+    padding: 10px;
+    font-size: 18px;
+    border: 2px solid #fff;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+}
+
+#input-box:focus {
+    outline: 2px solid #00ffff;
+}
