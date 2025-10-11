@@ -382,15 +382,37 @@ function drawScore() {
 
 // ゲームクリア/オーバーのメッセージを表示する
 function drawGameMessage(mainText, subText) {
+    // ガイドを非表示にする
+    hiraGuideElement.hide();
+    romajiGuideElement.hide();
+
     fill(0, 0, 0, 150); // 半透明の黒い四角
-    rect(0, height / 2 - 50, width, 100);
+    rect(0, height / 2 - 80, width, 160);
     
     fill(255, 255, 0); // 黄色
     textSize(40);
     textAlign(CENTER, CENTER);
-    text(mainText, width / 2, height / 2 - 10);
+    text(mainText, width / 2, height / 2 - 30);
     
     fill(255); // 白
     textSize(20);
-    text(subText, width / 2, height / 2 + 30);
+    text(subText, width / 2, height / 2 + 20);
+
+    textSize(16);
+    text("Click to Replay", width / 2, height / 2 + 60);
+}
+
+// ゲームをリセットする関数
+function resetGame() {
+    score = 0;
+    meteors = [];
+    gameState = GAME_STATE.START;
+    select('#start-screen').show();
+}
+
+// マウスがクリックされたときに呼ばれるp5.jsの関数
+function mousePressed() {
+    if (gameState === GAME_STATE.CLEARED || gameState === GAME_STATE.GAME_OVER) {
+        resetGame();
+    }
 }
