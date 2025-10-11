@@ -131,6 +131,15 @@ function setup() {
     textAlign(CENTER, CENTER);
 }
 
+// ゲームを開始する関数
+function startGame(level) {
+    currentLevel = level;
+    gameState = GAME_STATE.PLAYING;
+    hiraGuideElement.show();
+    romajiGuideElement.show();
+    select('#start-screen').hide();
+}
+
 // 毎フレーム呼ばれる描画関数
 function draw() {
     background(0, 0, 20); // 濃い紺色の背景（宇宙）
