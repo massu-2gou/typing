@@ -132,8 +132,8 @@ function draw() {
 
 // 隕石の生成、移動、描画を管理
 function handleMeteors() {
-    // 一定の確率で新しい隕石を生成
-    if (frameCount % 90 === 0) { // 1.5秒に1回くらい
+    // 画面上に隕石がなければ、新しい隕石を1つ生成する
+    if (meteors.length === 0) {
         createMeteor();
     }
 
