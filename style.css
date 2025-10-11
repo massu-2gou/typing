@@ -19,17 +19,25 @@ h1 {
     width: fit-content; /* キャンバスのサイズに合わせる */
 }
 
-/* 入力ボックスのスタイル */
-#input-box {
-    width: 300px;
-    padding: 10px;
-    font-size: 18px;
-    border: 2px solid #fff;
-    background-color: #333;
-    color: #fff;
+/* ガイド全体のコンテナ */
+#guide-container {
+    margin-top: 20px;
+    /* ガイドが表示されていなくてもガタつかないように高さを確保 */
+    height: 80px; 
+}
+
+.guide {
     text-align: center;
 }
 
-#input-box:focus {
-    outline: 2px solid #00ffff;
+#hira-guide {
+    font-size: 18px;
+    margin-bottom: 10px;
 }
+
+#romaji-guide {
+    font-size: 24px;
+}
+
+.typed { color: #64ff64; } /* 明るい緑 */
+.untyped { color: #ffffff; } /* 白 */
