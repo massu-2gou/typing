@@ -12,6 +12,26 @@ h1 {
     font-size: 24px;
 }
 
+/* 難易度選択 */
+#start-screen {
+    margin-bottom: 20px;
+}
+
+.level-btn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    color: #fff;
+    background-color: #333;
+    border: 2px solid #fff;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin: 0 10px;
+}
+.level-btn:hover {
+    background-color: #00ffff;
+    color: #111;
+}
+
 /* ゲーム画面のコンテナ */
 #canvas-container {
     margin: 20px auto;
