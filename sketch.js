@@ -1,5 +1,4 @@
 // --- ゲーム設定 ---
-const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
 
@@ -15,6 +14,56 @@ const GAME_STATE = {
     GAME_OVER: 'gameOver'
 };
 let gameState = GAME_STATE.PLAYING;
+
+// ローマ字とひらがなの対応表
+// 「ん」や「っ」などの特殊なケースも考慮すると複雑になるため、今回は基本的なマッピングのみ
+const romajiMap = {
+    'あ': ['a'], 'い': ['i'], 'う': ['u'], 'え': ['e'], 'お': ['o'],
+    'か': ['ka'], 'き': ['ki'], 'く': ['ku'], 'け': ['ke'], 'こ': ['ko'],
+    'さ': ['sa'], 'し': ['shi', 'si'], 'す': ['su'], 'せ': ['se'], 'そ': ['so'],
+    'た': ['ta'], 'ち': ['chi', 'ti'], 'つ': ['tsu', 'tu'], 'て': ['te'], 'と': ['to'],
+    'な': ['na'], 'に': ['ni'], 'ぬ': ['nu'], 'ね': ['ne'], 'の': ['no'],
+    'は': ['ha'], 'ひ': ['hi'], 'ふ': ['fu', 'hu'], 'へ': ['he'], 'ほ': ['ho'],
+    'ま': ['ma'], 'み': ['mi'], 'む': ['mu'], 'め': ['me'], 'も': ['mo'],
+    'や': ['ya'], 'ゆ': ['yu'], 'よ': ['yo'],
+    'ら': ['ra'], 'り': ['ri'], 'る': ['ru'], 'れ': ['re'], 'ろ': ['ro'],
+    'わ': ['wa'], 'を': ['wo'], 'ん': ['n', 'nn'],
+    'が': ['ga'], 'ぎ': ['gi'], 'ぐ': ['gu'], 'げ': ['ge'], 'ご': ['go'],
+    'ざ': ['za'], 'じ': ['ji', 'zi'], 'ず': ['zu'], 'ぜ': ['ze'], 'ぞ': ['zo'],
+    'だ': ['da'], 'ぢ': ['di'], 'づ': ['du'], 'で': ['de'], 'ど': ['do'],
+    'ば': ['ba'], 'び': ['bi'], 'ぶ': ['bu'], 'べ': ['be'], 'ぼ': ['bo'],
+    'ぱ': ['pa'], 'ぴ': ['pi'], 'ぷ': ['pu'], 'ぺ': ['pe'], 'ぽ': ['po'],
+    'きゃ': ['kya'], 'きゅ': ['kyu'], 'きょ': ['kyo'],
+    'しゃ': ['sha', 'sya'], 'しゅ': ['shu', 'syu'], 'しょ': ['sho', 'syo'],
+    'ちゃ': ['cha', 'tya'], 'ちゅ': ['chu', 'tyu'], 'ちょ': ['cho', 'tyo'],
+    'にゃ': ['nya'], 'にゅ': ['nyu'], 'にょ': ['nyo'],
+    'ひゃ': ['hya'], 'ひゅ': ['hyu'], 'ひょ': ['hyo'],
+    'みゃ': ['mya'], 'みゅ': ['myu'], 'みょ': ['myo'],
+    'りゃ': ['rya'], 'りゅ': ['ryu'], 'りょ': ['ryo'],
+    'ぎゃ': ['gya'], 'ぎゅ': ['gyu'], 'ぎょ': ['gyo'],
+    'じゃ': ['ja', 'zya'], 'じゅ': ['ju', 'zyu'], 'じょ': ['jo', 'zyo'],
+    'びゃ': ['bya'], 'びゅ': ['byu'], 'びょ': ['byo'],
+    'ぴゃ': ['pya'], 'ぴゅ': ['pyu'], 'ぴょ': ['pyo'],
+    'ー': ['-'],
+    // 小さい「っ」の処理は複雑なため、今回は省略
+};
+
+// ひらがなをローマ字に変換する（デバッグや拡張用）
+function hiraganaToRomaji(hira) {
+    // 拗音（きゃ等）を先に処理
+    const patterns = ['きゃ', 'きゅ', 'きょ', 'しゃ', 'しゅ', 'しょ', 'ちゃ', 'ちゅ', 'ちょ', 'にゃ', 'にゅ', 'にょ', 'ひゃ', 'ひゅ', 'ひょ', 'みゃ', 'みゅ', 'みょ', 'りゃ', 'りゅ', 'りょ', 'ぎゃ', 'ぎゅ', 'ぎょ', 'じゃ', 'じゅ', 'じょ', 'びゃ', 'びゅ', 'びょ', 'ぴゃ', 'ぴゅ', 'ぴょ'];
+    for (const p of patterns) {
+        if (hira.startsWith(p)) {
+            return { romajiOptions: romajiMap[p], remainingHira: hira.substring(p.length) };
+        }
+    }
+    // 通常の文字
+    const char = hira[0];
+    if (romajiMap[char]) {
+        return { romajiOptions: romajiMap[char], remainingHira: hira.substring(1) };
+    }
+    return null; // 対応するローマ字がない
+}
 
 // --- p5.jsの関数 ---
 
@@ -98,7 +147,13 @@ function handleMeteors() {
         fill(200, 200, 100); // 黄土色
         ellipse(meteor.x, meteor.y, 50, 50); // 円で隕石を表現
         fill(255); // 文字は白
-        text(meteor.word, meteor.x, meteor.y);
+        text(meteor.fullWord, meteor.x, meteor.y); // 全文を表示
+
+        // 入力済みの部分を色を変えて表示
+        fill(100, 255, 100); // 明るい緑
+        const typedPart = meteor.fullWord.substring(0, meteor.fullWord.length - meteor.remainingWord.length);
+        textAlign(CENTER, CENTER);
+        text(typedPart, meteor.x, meteor.y);
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
@@ -110,12 +165,21 @@ function handleMeteors() {
 
 // 新しい隕石を作成する
 function createMeteor() {
-    const word = random(wordList); // 読み込んだ単語リストからランダムに選ぶ
+    // もし単語リストが空なら何もしない
+    if (wordList.length === 0) return;
+
+    const word = random(wordList); // 単語をランダムに選ぶ
+    if (!word) return; // まれに取得できないケースに対応
+
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
     const speed = 0.5 + score / 50000; // スコアが上がると少し速くなる
 
     meteors.push({
-        word: word,
+        fullWord: word,      // 表示する単語全体（例: 'じしん'）
+        remainingWord: word, // これからタイプするべき残りの単語（例: 'じしん'）
+        typedRomaji: '',     // 現在入力途中のローマ字（例: 'j'）
+        nextRomajiOptions: hiraganaToRomaji(word).romajiOptions, // 次に打つべきローマ字の選択肢（例: ['ji', 'zi']）
+
         x: x,
         y: -25, // 画面の上からスタート
         speed: speed
@@ -123,21 +187,45 @@ function createMeteor() {
 }
 
 // プレイヤーの入力を処理する
-function handleInput() {
+function handleInput(event) {
     const typedWord = inputBox.value();
     
-    // 画面内の隕石と一致するかチェック
+    // 最も下にある隕石からチェック（一番狙いやすい隕石を優先）
     for (let i = meteors.length - 1; i >= 0; i--) {
-        if (meteors[i].word === typedWord) {
-            // 一致したらスコアを加算して隕石を消す
-            score += meteors[i].word.length * 1000; // 文字数に応じてスコアUP
-            meteors.splice(i, 1); // 配列から隕石を削除
-            
-            // TODO: ビーム発射エフェクトを追加すると良い
-            inputBox.value(''); // 入力ボックスを空にする
-            break; // 複数の同じ単語があっても1つだけ消す
+        const meteor = meteors[i];
+        const newTypedRomaji = meteor.typedRomaji + typedWord;
+
+        let matched = false;
+        for (const option of meteor.nextRomajiOptions) {
+            if (option === newTypedRomaji) { // ローマ字が完全に一致
+                const conversion = hiraganaToRomaji(meteor.remainingWord);
+                meteor.remainingWord = conversion.remainingHira;
+                meteor.typedRomaji = '';
+
+                if (meteor.remainingWord.length === 0) { // 単語をすべて打ち終えた
+                    score += meteor.fullWord.length * 1000;
+                    meteors.splice(i, 1); // 隕石を消す
+                } else { // 次の文字へ
+                    meteor.nextRomajiOptions = hiraganaToRomaji(meteor.remainingWord).romajiOptions;
+                }
+                matched = true;
+                break;
+            } else if (option.startsWith(newTypedRomaji)) { // ローマ字の途中まで一致
+                meteor.typedRomaji = newTypedRomaji;
+                matched = true;
+                break;
+            }
+        }
+
+        if (matched) {
+            // 一致する隕石が見つかったら、他の隕石はチェックしない
+            inputBox.value(''); // 入力ボックスをクリア
+            return;
         }
     }
+
+    // どの隕石のどのパターンにも一致しなかった場合、入力をリセット
+    inputBox.value('');
 }
 
 // スコアを画面に表示する
