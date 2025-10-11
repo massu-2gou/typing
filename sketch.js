@@ -14,7 +14,7 @@ let gameState = 'playing'; // 'playing', 'cleared', 'gameOver'
 // setup()の前に実行され、外部ファイルを読み込むために使います
 function preload() {
 
-    const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTyIq0sjU8vdE0uAepabSIhLtgJeQfNvY3Xwj2aB51Xn_F1KitP_tMXvdAyyZDAllxitISbYJPyINxA/pub?gid=0&single=true&output=csv';
+    const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk-pjP-Z7GCV3aVLiIYCbYh5b1L4cmSBU0Bix7ZEgvsNy0m1qj6pGrGA4y9n8HChkFzvv45lja0Min/pub?gid=0&single=true&output=csv';
     wordList = loadStrings(SPREADSHEET_URL);
 }
 
@@ -159,3 +159,4 @@ function drawGameMessage(mainText, subText) {
     textSize(20);
     text(subText, width / 2, height / 2 + 30);
 }
+
