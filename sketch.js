@@ -1,3 +1,4 @@
+// --- ゲーム設定 ---
 const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
@@ -287,10 +288,11 @@ function keyPressed() {
         }
     }
 
-    // どの隕石とも全く一致しなかった場合（タイプミス）、すべての隕石の入力をリセット
+    // どの隕石とも全く一致しなかった場合（タイプミス）の処理
     if (!anyMatch) {
-        for (const meteor of meteors) {
-            meteor.typedRomaji = '';
+        // 入力途中の文字がある場合のみ、入力をリセットする
+        if (meteors.length > 0 && meteors[0].typedRomaji !== '') {
+            meteors[0].typedRomaji = '';
         }
     }
 }
