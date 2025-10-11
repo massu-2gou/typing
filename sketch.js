@@ -3,7 +3,8 @@ const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
 
-let wordList; // 外部ファイルから読み込んだ単語リストを格納する変数
+let wordListLv1 = []; // レベル1の単語リスト
+let wordListLv2 = []; // レベル2の単語リスト
 let meteors = []; // 隕石を管理する配列
 let score = 0;
 let stars = []; // 星空を管理する配列
@@ -12,11 +13,13 @@ let romajiGuideElement; // ローマ字ガイドのHTML要素
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
+    START: 'start',
     PLAYING: 'playing',
     CLEARED: 'cleared',
     GAME_OVER: 'gameOver'
 };
-let gameState = GAME_STATE.PLAYING;
+let gameState = GAME_STATE.START;
+let currentLevel = 1; // 現在の難易度
 
 // ローマ字とひらがなの対応表
 // 「ん」や「っ」などの特殊なケースも考慮すると複雑になるため、今回は基本的なマッピングのみ
@@ -48,11 +51,21 @@ const romajiMap = {
     'びゃ': ['bya'], 'びゅ': ['byu'], 'びょ': ['byo'],
     'ぴゃ': ['pya'], 'ぴゅ': ['pyu'], 'ぴょ': ['pyo'],
     'ー': ['-'],
-    // 小さい「っ」の処理は複雑なため、今回は省略
 };
 
 // ひらがなをローマ字に変換する（デバッグや拡張用）
 function hiraganaToRomaji(hira) {
+    if (!hira) return null;
+
+    // 小さい「っ」の処理
+    if (hira.startsWith('っ')) {
+        const nextConversion = hiraganaToRomaji(hira.substring(1));
+        if (nextConversion && nextConversion.romajiOptions.length > 0) {
+            const firstConsonant = nextConversion.romajiOptions[0][0];
+            return { romajiOptions: [firstConsonant], remainingHira: hira.substring(1) };
+        }
+    }
+
     // 拗音（きゃ等）を先に処理
     const patterns = ['きゃ', 'きゅ', 'きょ', 'しゃ', 'しゅ', 'しょ', 'ちゃ', 'ちゅ', 'ちょ', 'にゃ', 'にゅ', 'にょ', 'ひゃ', 'ひゅ', 'ひょ', 'みゃ', 'みゅ', 'みょ', 'りゃ', 'りゅ', 'りょ', 'ぎゃ', 'ぎゅ', 'ぎょ', 'じゃ', 'じゅ', 'じょ', 'びゃ', 'びゅ', 'びょ', 'ぴゃ', 'ぴゅ', 'ぴょ'];
     for (const p of patterns) {
@@ -73,8 +86,8 @@ function hiraganaToRomaji(hira) {
 // setup()の前に実行され、外部ファイルを読み込むために使います
 function preload() {
 
-    const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk-pjP-Z7GCV3aVLiIYCbYh5b1L4cmSBU0Bix7ZEgvsNy0m1qj6pGrGA4y9n8HChkFzvv45lja0Min/pub?output=csv';
-    wordList = loadStrings(SPREADSHEET_URL);
+    const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk-pjP-Z7GCV3aVLiIYCbYh5b1L4cmSBU0Bix7ZEgvsNy0m1qj6pGrGA4y9n8HChkFzvv45lja0Min/pub?output=csv'; // 必ずご自身のURLに置き換えてください
+    loadStrings(SPREADSHEET_URL, parseWords);
 }
 
 // ゲームの初期設定
@@ -87,23 +100,22 @@ function setup() {
     hiraGuideElement = select('#hira-guide');
     romajiGuideElement = select('#romaji-guide');
 
-    // wordListが正しく読み込めたか確認し、空行を除外する
-    if (!wordList) { // preloadが失敗した場合のフォールバック
-        wordList = [];
-    }
-    if (!wordList || wordList.length === 0) {
-        console.error("単語リストの読み込みに失敗したか、リストが空です。");
-        // エラーメッセージを画面に表示してゲームを停止
-        background(0, 0, 20);
-        fill(255, 100, 100); // 赤っぽい色
-        textAlign(CENTER, CENTER);
-        textSize(16);
-        text("エラー: 単語リストが読み込めません。\nスプレッドシートの公開URLが正しいか確認してください。", width / 2, height / 2);
-        noLoop(); // draw()ループを停止
-        return; // setup()をここで終了
-    }
-    // 読み込んだリストから空行を取り除く
-    wordList = wordList.filter(word => word.trim() !== '');
+    // 難易度選択ボタンの処理
+    const startScreen = select('#start-screen');
+    select('#level1-btn').mousePressed(() => {
+        currentLevel = 1;
+        gameState = GAME_STATE.PLAYING;
+        startScreen.hide();
+    });
+    select('#level2-btn').mousePressed(() => {
+        currentLevel = 2;
+        gameState = GAME_STATE.PLAYING;
+        startScreen.hide();
+    });
+
+    // ガイドを最初は非表示に
+    hiraGuideElement.hide();
+    romajiGuideElement.hide();
 
     // 星を初期化
     for (let i = 0; i < 200; i++) {
@@ -128,6 +140,11 @@ function draw() {
     background(0, 0, 20); // 濃い紺色の背景（宇宙）
 
     drawStars(); // 星を描画
+
+    if (gameState === GAME_STATE.START) {
+        // スタート画面のメッセージ
+        return; // ゲームロジックは実行しない
+    }
     if (gameState === GAME_STATE.PLAYING) {
         // プレイ中の処理
         handleMeteors();
@@ -144,6 +161,22 @@ function draw() {
     } else if (gameState === GAME_STATE.GAME_OVER) {
         // ゲームオーバー時の表示
         drawGameMessage('ゲームオーバー', '隕石が地球に衝突した...');
+    }
+}
+
+// スプレッドシートから読み込んだデータを解析する関数
+function parseWords(data) {
+    for (const line of data) {
+        const words = line.split(',');
+        const word1 = words[0] ? words[0].trim() : '';
+        const word2 = words[1] ? words[1].trim() : '';
+
+        if (word1) {
+            wordListLv1.push(word1);
+        }
+        if (word2) {
+            wordListLv2.push(word2);
+        }
     }
 }
 
@@ -192,10 +225,12 @@ function handleMeteors() {
 
 // 新しい隕石を作成する
 function createMeteor() {
-    // もし単語リストが空なら何もしない
-    if (wordList.length === 0) return;
+    const targetWordList = (currentLevel === 1) ? wordListLv1 : wordListLv2;
 
-    const word = random(wordList); // 単語をランダムに選ぶ
+    // もし単語リストが空なら何もしない
+    if (targetWordList.length === 0) return;
+
+    const word = random(targetWordList); // 選択されたレベルのリストから単語をランダムに選ぶ
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
@@ -233,6 +268,11 @@ function buildGuideRomaji(hira) {
 
 // キーが押されたときにp5.jsによって自動的に呼ばれる関数
 function keyPressed() {
+    // ゲーム開始前は何もしない
+    if (gameState !== GAME_STATE.PLAYING) {
+        return;
+    }
+
     // ゲームプレイ中以外、またはSHIFTキーなどの特殊キーの場合は何もしない
     if (gameState !== GAME_STATE.PLAYING || key.length > 1) {
         return;
@@ -299,6 +339,10 @@ function keyPressed() {
 
 // 画面下部にタイピングガイドを表示する関数
 function updateTypingGuide() {
+    // ガイド要素を表示状態にする
+    hiraGuideElement.show();
+    romajiGuideElement.show();
+
     if (meteors.length === 0) {
         // 隕石がないときはガイドを空にする
         hiraGuideElement.html('');
