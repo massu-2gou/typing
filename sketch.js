@@ -105,11 +105,15 @@ function setup() {
     select('#level1-btn').mousePressed(() => {
         currentLevel = 1;
         gameState = GAME_STATE.PLAYING;
+        hiraGuideElement.show();
+        romajiGuideElement.show();
         startScreen.hide();
     });
     select('#level2-btn').mousePressed(() => {
         currentLevel = 2;
         gameState = GAME_STATE.PLAYING;
+        hiraGuideElement.show();
+        romajiGuideElement.show();
         startScreen.hide();
     });
 
@@ -141,10 +145,11 @@ function draw() {
 
     drawStars(); // 星を描画
 
+    // スタート画面では何もしない
     if (gameState === GAME_STATE.START) {
-        // スタート画面のメッセージ
-        return; // ゲームロジックは実行しない
+        return;
     }
+
     if (gameState === GAME_STATE.PLAYING) {
         // プレイ中の処理
         handleMeteors();
