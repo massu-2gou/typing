@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宇宙タイピングゲーム</title>
+    <title>宇宙タイピング</title>
     <!-- p5.jsライブラリを読み込みます -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +14,12 @@
 </head>
 <body>
     <h1>宇宙タイピング</h1>
+    <!-- 難易度選択画面 -->
+    <div id="start-screen">
+        <button id="level1-btn" class="level-btn">かんたん</button>
+        <button id="level2-btn" class="level-btn">むずかしい</button>
+    </div>
+
     <!-- ゲーム画面（キャンバス）がここに表示されます -->
     <div id="canvas-container"></div>
     
