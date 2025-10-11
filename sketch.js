@@ -317,11 +317,7 @@ function updateTypingGuide() {
     // --- 2. ローマ字ガイドの描画 ---
     const fullGuide = meteor.guideRomaji;
     const remainingGuide = buildGuideRomaji(meteor.remainingWord);
-    // remainingGuideが空文字列の場合にsliceがうまく動かないことがあるため、安全な方法で分割
-    const typedGuide = fullGuide.startsWith(remainingGuide) 
-        ? fullGuide.substring(0, fullGuide.length - remainingGuide.length)
-        : fullGuide; // 念の為のフォールバック
-
+    const typedGuide = buildGuideRomaji(typedHira);
     const romajiHTML = `<span class="typed">${typedGuide}</span><span class="untyped">${remainingGuide}</span>`;
     romajiGuideElement.html(romajiHTML);
 }
