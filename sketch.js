@@ -7,7 +7,14 @@ let wordList; // 外部ファイルから読み込んだ単語リストを格納
 let meteors = []; // 隕石を管理する配列
 let score = 0;
 let inputBox;
-let gameState = 'playing'; // 'playing', 'cleared', 'gameOver'
+
+// ゲームの状態を定数で管理する
+const GAME_STATE = {
+    PLAYING: 'playing',
+    CLEARED: 'cleared',
+    GAME_OVER: 'gameOver'
+};
+let gameState = GAME_STATE.PLAYING;
 
 // --- p5.jsの関数 ---
 
@@ -26,7 +33,7 @@ function setup() {
 
     // HTMLの入力ボックスを取得
     inputBox = select('#input-box');
-    inputBox.elt.addEventListener('keydown', handleInput);
+    inputBox.elt.addEventListener('input', handleInput); // 'keydown'から'input'に変更
 
     // wordListが正しく読み込めたか確認し、空行を除外する
     if (!wordList || wordList.length === 0) {
@@ -55,19 +62,19 @@ function setup() {
 function draw() {
     background(0, 0, 20); // 濃い紺色の背景（宇宙）
 
-    if (gameState === 'playing') {
+    if (gameState === GAME_STATE.PLAYING) {
         // プレイ中の処理
         handleMeteors();
         drawScore();
         
         // 50万点でクリア
         if (score >= GOAL_SCORE) {
-            gameState = 'cleared';
+            gameState = GAME_STATE.CLEARED;
         }
-    } else if (gameState === 'cleared') {
+    } else if (gameState === GAME_STATE.CLEARED) {
         // ゲームクリア時の表示
         drawGameMessage('ゲームクリア！', '目的の星に到着した！');
-    } else if (gameState === 'gameOver') {
+    } else if (gameState === GAME_STATE.GAME_OVER) {
         // ゲームオーバー時の表示
         drawGameMessage('ゲームオーバー', '隕石が地球に衝突した...');
     }
@@ -95,7 +102,7 @@ function handleMeteors() {
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
-            gameState = 'gameOver';
+            gameState = GAME_STATE.GAME_OVER;
             break; // ループを抜ける
         }
     }
@@ -116,24 +123,20 @@ function createMeteor() {
 }
 
 // プレイヤーの入力を処理する
-function handleInput(event) {
-    if (event.key === 'Enter') {
-        const typedWord = inputBox.value();
-        
-        // 画面内の隕石と一致するかチェック
-        for (let i = meteors.length - 1; i >= 0; i--) {
-            if (meteors[i].word === typedWord) {
-                // 一致したらスコアを加算して隕石を消す
-                score += meteors[i].word.length * 1000; // 文字数に応じてスコアUP
-                meteors.splice(i, 1); // 配列から隕石を削除
-                
-                // TODO: ビーム発射エフェクトを追加すると良い
-                break; // 複数の同じ単語があっても1つだけ消す
-            }
+function handleInput() {
+    const typedWord = inputBox.value();
+    
+    // 画面内の隕石と一致するかチェック
+    for (let i = meteors.length - 1; i >= 0; i--) {
+        if (meteors[i].word === typedWord) {
+            // 一致したらスコアを加算して隕石を消す
+            score += meteors[i].word.length * 1000; // 文字数に応じてスコアUP
+            meteors.splice(i, 1); // 配列から隕石を削除
+            
+            // TODO: ビーム発射エフェクトを追加すると良い
+            inputBox.value(''); // 入力ボックスを空にする
+            break; // 複数の同じ単語があっても1つだけ消す
         }
-        
-        inputBox.value(''); // 入力ボックスを空にする
-        event.preventDefault(); // フォームのデフォルト送信を防ぐ
     }
 }
 
@@ -159,6 +162,3 @@ function drawGameMessage(mainText, subText) {
     textSize(20);
     text(subText, width / 2, height / 2 + 30);
 }
-
-
-
