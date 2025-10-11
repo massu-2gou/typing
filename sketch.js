@@ -227,8 +227,9 @@ function keyPressed() {
                 const conversion = hiraganaToRomaji(meteor.remainingWord);
                 // ユーザーがデフォルト以外の表記を使った場合、ガイドを更新する
                 if (option !== conversion.romajiOptions[0]) {
-                    const typedGuidePart = meteor.guideRomaji.slice(0, meteor.guideRomaji.length - meteor.remainingWord.length);
-                    meteor.guideRomaji = typedGuidePart + option + buildGuideRomaji(conversion.remainingHira);
+                    const typedLength = meteor.fullWord.length - meteor.remainingWord.length;
+                    const typedHira = meteor.fullWord.substring(0, typedLength);
+                    meteor.guideRomaji = buildGuideRomaji(typedHira) + option + buildGuideRomaji(conversion.remainingHira);
                 }
                 meteor.remainingWord = conversion.remainingHira;
                 meteor.typedRomaji = '';
@@ -274,7 +275,6 @@ function drawTypingGuide() {
 
     const meteor = meteors[0]; // 現在の隕石
     const fullGuide = meteor.guideRomaji;
-    const remainingHiraLength = meteor.remainingWord.length;
     
     // 残りのひらがなから、残りのローマ字ガイド部分を生成
     const remainingGuide = buildGuideRomaji(meteor.remainingWord);
@@ -282,15 +282,20 @@ function drawTypingGuide() {
 
     const guideY = height - 30;
     textSize(24);
-    textAlign(CENTER, BOTTOM);
+
+    // 全体の幅を計算して、描画開始位置を決定
+    const totalWidth = textWidth(fullGuide);
+    let currentX = width / 2 - totalWidth / 2;
 
     // 入力済みの部分（緑色）
+    textAlign(LEFT, BOTTOM); // 左揃えに変更
     fill(100, 255, 100);
-    text(typedGuide, width / 2, guideY);
+    text(typedGuide, currentX, guideY);
 
     // 未入力の部分（白色）
+    currentX += textWidth(typedGuide);
     fill(255);
-    text(fullGuide, width / 2, guideY);
+    text(remainingGuide, currentX, guideY);
 }
 
 // スコアを画面に表示する
