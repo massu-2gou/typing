@@ -113,6 +113,7 @@ function draw() {
     if (gameState === GAME_STATE.PLAYING) {
         // プレイ中の処理
         handleMeteors();
+        drawTypingGuide(); // ★ ガイド表示関数を呼び出す
         drawScore();
         
         // 50万点でクリア
@@ -145,13 +146,13 @@ function handleMeteors() {
         // 隕石を描画
         fill(200, 200, 100); // 黄土色
         ellipse(meteor.x, meteor.y, 50, 50); // 円で隕石を表現
+        textAlign(CENTER, CENTER); // ★★★ 文字を描画する前に中央揃えに設定
         fill(255); // 文字は白
         text(meteor.fullWord, meteor.x, meteor.y); // 全文を表示
 
         // 入力済みの部分を色を変えて表示
         fill(100, 255, 100); // 明るい緑
         const typedPart = meteor.fullWord.substring(0, meteor.fullWord.length - meteor.remainingWord.length);
-        textAlign(CENTER, CENTER);
         text(typedPart, meteor.x, meteor.y);
 
         // 隕石が画面外に出たらゲームオーバー
@@ -178,12 +179,29 @@ function createMeteor() {
         remainingWord: word, // これからタイプするべき残りの単語（例: 'じしん'）
         typedRomaji: '',     // 現在入力途中のローマ字（例: 'j'）
         // hiraganaToRomajiがnullを返す可能性に対処
+        guideRomaji: buildGuideRomaji(word), // ★ ガイド用のローマ字を生成
         nextRomajiOptions: (hiraganaToRomaji(word) || { romajiOptions: [] }).romajiOptions,
 
         x: x,
         y: -25, // 画面の上からスタート
         speed: speed
     });
+}
+
+// ガイド用のローマ字文字列を生成する関数
+function buildGuideRomaji(hira) {
+    let result = '';
+    let remaining = hira;
+    while (remaining.length > 0) {
+        const conversion = hiraganaToRomaji(remaining);
+        if (conversion && conversion.romajiOptions.length > 0) {
+            result += conversion.romajiOptions[0]; // 最初の候補をデフォルトとして使う
+            remaining = conversion.remainingHira;
+        } else {
+            break; // 変換できない文字があったら終了
+        }
+    }
+    return result;
 }
 
 // キーが押されたときにp5.jsによって自動的に呼ばれる関数
@@ -207,6 +225,11 @@ function keyPressed() {
         for (const option of meteor.nextRomajiOptions) {
             if (option === newTypedRomaji) { // ローマ字が完全に一致した場合
                 const conversion = hiraganaToRomaji(meteor.remainingWord);
+                // ユーザーがデフォルト以外の表記を使った場合、ガイドを更新する
+                if (option !== conversion.romajiOptions[0]) {
+                    const typedGuidePart = meteor.guideRomaji.slice(0, meteor.guideRomaji.length - meteor.remainingWord.length);
+                    meteor.guideRomaji = typedGuidePart + option + buildGuideRomaji(conversion.remainingHira);
+                }
                 meteor.remainingWord = conversion.remainingHira;
                 meteor.typedRomaji = '';
 
@@ -214,7 +237,12 @@ function keyPressed() {
                     score += meteor.fullWord.length * 1000;
                     meteors.splice(i, 1); // 隕石を消す
                 } else { // 次のひらがなへ進む
-                    meteor.nextRomajiOptions = hiraganaToRomaji(meteor.remainingWord).romajiOptions;
+                    const nextConversion = hiraganaToRomaji(meteor.remainingWord);
+                    if (nextConversion) {
+                        meteor.nextRomajiOptions = nextConversion.romajiOptions;
+                    } else {
+                        meteor.nextRomajiOptions = [];
+                    }
                 }
                 anyMatch = true;
                 break;
@@ -238,6 +266,31 @@ function keyPressed() {
             meteor.typedRomaji = '';
         }
     }
+}
+
+// 画面下部にタイピングガイドを表示する関数
+function drawTypingGuide() {
+    if (meteors.length === 0) return;
+
+    const meteor = meteors[0]; // 現在の隕石
+    const fullGuide = meteor.guideRomaji;
+    const remainingHiraLength = meteor.remainingWord.length;
+    
+    // 残りのひらがなから、残りのローマ字ガイド部分を生成
+    const remainingGuide = buildGuideRomaji(meteor.remainingWord);
+    const typedGuide = fullGuide.slice(0, fullGuide.length - remainingGuide.length);
+
+    const guideY = height - 30;
+    textSize(24);
+    textAlign(CENTER, BOTTOM);
+
+    // 入力済みの部分（緑色）
+    fill(100, 255, 100);
+    text(typedGuide, width / 2, guideY);
+
+    // 未入力の部分（白色）
+    fill(255);
+    text(fullGuide, width / 2, guideY);
 }
 
 // スコアを画面に表示する
