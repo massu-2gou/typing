@@ -6,6 +6,7 @@ const GOAL_SCORE = 500000;
 let wordList; // 外部ファイルから読み込んだ単語リストを格納する変数
 let meteors = []; // 隕石を管理する配列
 let score = 0;
+let stars = []; // 星空を管理する配列
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
@@ -98,11 +99,21 @@ function setup() {
     // 読み込んだリストから空行を取り除く
     wordList = wordList.filter(word => word.trim() !== '');
 
+    // 星を初期化
+    for (let i = 0; i < 200; i++) {
+        stars.push({
+            x: random(width),
+            y: random(height),
+            size: random(1, 3),
+            speed: random(0.5, 2)
+        });
+    }
+
     // フレームレート（1秒間の描画回数）を設定
     frameRate(60);
     
     // テキストのスタイル設定
-    textSize(20);
+    textFont('Press Start 2P');
     textAlign(CENTER, CENTER);
 }
 
@@ -110,6 +121,7 @@ function setup() {
 function draw() {
     background(0, 0, 20); // 濃い紺色の背景（宇宙）
 
+    drawStars(); // 星を描画
     if (gameState === GAME_STATE.PLAYING) {
         // プレイ中の処理
         handleMeteors();
@@ -131,6 +143,19 @@ function draw() {
 
 // --- ゲームロジックの関数 ---
 
+// 星空を描画する関数
+function drawStars() {
+    fill(255);
+    noStroke();
+    for (const star of stars) {
+        ellipse(star.x, star.y, star.size);
+        star.y += star.speed;
+        if (star.y > height) {
+            star.y = 0;
+            star.x = random(width);
+        }
+    }
+}
 // 隕石の生成、移動、描画を管理
 function handleMeteors() {
     // 画面上に隕石がなければ、新しい隕石を1つ生成する
@@ -146,14 +171,10 @@ function handleMeteors() {
         // 隕石を描画
         fill(200, 200, 100); // 黄土色
         ellipse(meteor.x, meteor.y, 50, 50); // 円で隕石を表現
+        textSize(18);
         textAlign(CENTER, CENTER); // ★★★ 文字を描画する前に中央揃えに設定
         fill(255); // 文字は白
         text(meteor.fullWord, meteor.x, meteor.y); // 全文を表示
-
-        // 入力済みの部分を色を変えて表示
-        fill(100, 255, 100); // 明るい緑
-        const typedPart = meteor.fullWord.substring(0, meteor.fullWord.length - meteor.remainingWord.length);
-        text(typedPart, meteor.x, meteor.y);
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
