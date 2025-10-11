@@ -7,7 +7,7 @@
     <!-- p5.jsライブラリを読み込みます -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
     <!-- CSSファイルを読み込みます -->
     <link rel="stylesheet" href="style.css">
@@ -16,8 +16,8 @@
     <h1>宇宙タイピング</h1>
     <!-- 難易度選択画面 -->
     <div id="start-screen">
-        <button id="level1-btn" class="level-btn">かんたん</button>
-        <button id="level2-btn" class="level-btn">むずかしい</button>
+        <button class="level-btn" data-level="1">かんたん</button>
+        <button class="level-btn" data-level="2">むずかしい</button>
     </div>
 
     <!-- ゲーム画面（キャンバス）がここに表示されます -->
