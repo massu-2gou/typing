@@ -33,7 +33,7 @@ const romajiMap = {
     'ま': ['ma'], 'み': ['mi'], 'む': ['mu'], 'め': ['me'], 'も': ['mo'],
     'や': ['ya'], 'ゆ': ['yu'], 'よ': ['yo'],
     'ら': ['ra'], 'り': ['ri'], 'る': ['ru'], 'れ': ['re'], 'ろ': ['ro'],
-    'わ': ['wa'], 'を': ['wo'], 'ん': ['n', 'nn'],
+    'わ': ['wa'], 'を': ['wo'], 'ん': ['n'],
     'が': ['ga'], 'ぎ': ['gi'], 'ぐ': ['gu'], 'げ': ['ge'], 'ご': ['go'],
     'ざ': ['za'], 'じ': ['ji', 'zi'], 'ず': ['zu'], 'ぜ': ['ze'], 'ぞ': ['zo'],
     'だ': ['da'], 'ぢ': ['di'], 'づ': ['du'], 'で': ['de'], 'ど': ['do'],
@@ -135,7 +135,7 @@ function setup() {
     frameRate(60);
     
     // テキストのスタイル設定
-    textFont('Press Start 2P');
+    textFont('DotGothic16');
     textAlign(CENTER, CENTER);
 }
 
@@ -399,7 +399,7 @@ function drawGameMessage(mainText, subText) {
     text(subText, width / 2, height / 2 + 20);
 
     textSize(16);
-    text("Click to Replay", width / 2, height / 2 + 60);
+    text("クリックしてもう一度", width / 2, height / 2 + REPLAY_TEXT_Y_OFFSET);
 }
 
 // ゲームをリセットする関数
