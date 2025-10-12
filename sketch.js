@@ -265,8 +265,8 @@ function handleMeteors() {
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
-            gameState = GAME_STATE.GAME_OVER;
             showEndScreen('ゲームオーバー', '隕石が地球に衝突した...');
+            gameState = GAME_STATE.GAME_OVER;
             break; // ループを抜ける
         }
     }
@@ -338,7 +338,6 @@ function keyPressed() {
         const meteor = meteors[i];
         // 既にターゲットになっている隕石は無視
         if (meteor.isTargeted) continue;
-
         const newTypedRomaji = meteor.typedRomaji + typedChar;
 
         let partialMatch = false;
@@ -390,20 +389,92 @@ function keyPressed() {
     }
 }
 
+// ビームを生成する関数
+function createBeam(targetMeteor) {
+    const rocketX = width / 2;
+    const rocketY = height - 60; // ロケット画像の上端あたり
+
+    beams.push({
+        x: rocketX,
+        y: rocketY,
+        target: targetMeteor,
+        speed: 25
+    });
+}
+
+// ビームの移動と衝突判定を管理する関数
+function handleBeams() {
+    for (let i = beams.length - 1; i >= 0; i--) {
+        const beam = beams[i];
+        const target = beam.target;
+
+        // ターゲットに向かって移動
+        const angle = atan2(target.y - beam.y, target.x - beam.x);
+        beam.x += cos(angle) * beam.speed;
+        beam.y += sin(angle) * beam.speed;
+
+        // ビームを描画
+        stroke(0, 255, 255); // シアン
+        strokeWeight(4);
+        line(beam.x, beam.y, beam.x - cos(angle) * 10, beam.y - sin(angle) * 10);
+
+        // 衝突判定
+        if (dist(beam.x, beam.y, target.x, target.y) < 25) {
+            createExplosion(target.x, target.y); // 爆発を生成
+            score += 100000; // スコアを加算
+
+            // 隕石を削除
+            const meteorIndex = meteors.indexOf(target);
+            if (meteorIndex > -1) {
+                meteors.splice(meteorIndex, 1);
+            }
+
+            beams.splice(i, 1); // ビームを削除
+        }
+    }
+}
+
+// 爆発を生成する関数
+function createExplosion(x, y) {
+    explosions.push({
+        x: x,
+        y: y,
+        life: 30, // 爆発の持続時間（フレーム数）
+        maxLife: 30,
+    });
+}
+
+// 爆発の描画とライフサイクルを管理する関数
+function handleExplosions() {
+    noStroke();
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        const exp = explosions[i];
+        const progress = exp.life / exp.maxLife; // 0 (終了) -> 1 (開始)
+        const alpha = 255 * progress;
+        const currentSize = (exp.maxLife - exp.life) * 2;
+
+        fill(255, 255, 0, alpha); // 黄色
+        ellipse(exp.x, exp.y, currentSize);
+
+        exp.life--;
+        if (exp.life <= 0) {
+            explosions.splice(i, 1);
+        }
+    }
+}
 // 画面下部にタイピングガイドを表示する関数
 function updateTypingGuide() {
-    // ガイド要素を表示状態にする
-    hiraGuideElement.show();
-    romajiGuideElement.show();
+    // ターゲットにされていない一番手前の隕石を探す
+    const currentMeteor = meteors.find(m => !m.isTargeted);
 
-    if (meteors.length === 0) {
+    if (!currentMeteor) {
         // 隕石がないときはガイドを空にする
         hiraGuideElement.html('');
         romajiGuideElement.html('');
         return;
     }
 
-    const meteor = meteors[0]; // 現在の隕石
+    const meteor = currentMeteor;
 
     // --- 1. お題（ひらがな）のガイドを描画 ---
     const fullHira = meteor.fullWord;
@@ -428,7 +499,7 @@ function drawScore() {
     text(`スコア: ${score}`, 10, 10);
 }
 
-// ゲーム終了画面を表示する
+// ゲームクリア/オーバーのメッセージを表示する
 function showEndScreen(mainText, subText) {
     // ガイドを非表示にする
     hiraGuideElement.hide();
