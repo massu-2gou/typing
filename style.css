@@ -26,11 +26,7 @@ h1 {
 }
 
 /* ボタン共通 */
-.level-btn {
-    margin-bottom: 20px;
-}
-
-.level-btn {
+#difficulty-screen .level-btn, #user-info-screen .level-btn, #end-screen .level-btn {
     font-family: 'Press Start 2P', 'DotGothic16', sans-serif;
     font-size: 16px;
     color: #fff;
@@ -40,7 +36,7 @@ h1 {
     cursor: pointer;
     margin: 0 10px;
 }
-.level-btn:hover {
+#difficulty-screen .level-btn:hover, #user-info-screen .level-btn:hover, #end-screen .level-btn:hover {
     background-color: #00ffff;
     color: #111;
 }
