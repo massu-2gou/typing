@@ -1,7 +1,7 @@
 // --- ゲーム設定 ---
 const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
-const GOAL_SCORE = 500000;
+const GOAL_SCORE = 250000;
 
 let wordLists = []; // 全レベルの単語リストを格納する配列
 let meteors = []; // 隕石を管理する配列
@@ -23,6 +23,7 @@ const GAME_STATE = {
 };
 let gameState = GAME_STATE.USER_INFO_SELECT;
 let currentLevel = 1; // 現在の難易度
+let isEndlessMode = false; // エンドレスモードかどうか
 
 // ローマ字とひらがなの対応表
 // 「ん」や「っ」などの特殊なケースも考慮すると複雑になるため、今回は基本的なマッピングのみ
@@ -129,12 +130,24 @@ function setup() {
     // 難易度選択ボタンの処理
     const levelButtons = selectAll('.level-btn');
     levelButtons.forEach(button => {
-        if (button.id() !== 'confirm-user-info' && button.id() !== 'retry-btn') {
+        const btnId = button.id();
+        if (btnId !== 'confirm-user-info' && btnId !== 'retry-btn' && btnId !== 'continue-btn') {
             button.mousePressed(() => {
                 const level = parseInt(button.attribute('data-level'), 10);
                 startGame(level);
             });
         }
+    });
+
+    // 「さらに続ける」ボタンの処理
+    select('#continue-btn').mousePressed(() => {
+        isEndlessMode = true;
+        gameState = GAME_STATE.PLAYING;
+        select('#end-screen').hide();
+        // ガイドを再表示
+        hiraGuideElement.show();
+        romajiGuideElement.show();
+        loop(); // 停止していたループを再開
     });
 
     // リトライボタンの処理
@@ -205,9 +218,9 @@ function draw() {
     drawScore();
     
     // クリア判定
-    if (score >= GOAL_SCORE) {
+    if (score >= GOAL_SCORE && !isEndlessMode) {
         gameState = GAME_STATE.CLEARED;
-        showEndScreen('ゲームクリア！', '目的の星に到着した！');
+        showEndScreen('ゲームクリア！', '目的の星に到着した！', true); // Continueボタンを表示
     }
 }
 
@@ -265,7 +278,7 @@ function handleMeteors() {
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
-            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...');
+            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...', false); // Continueボタンを非表示
             gameState = GAME_STATE.GAME_OVER;
             break; // ループを抜ける
         }
@@ -420,8 +433,8 @@ function handleBeams() {
 
         // 衝突判定
         if (dist(beam.x, beam.y, target.x, target.y) < 25) {
-            createExplosion(target.x, target.y); // 爆発を生成
-            score += 100000; // スコアを加算
+            createExplosion(target.x, target.y);
+            score += 50000; // スコアを5万点加算
 
             // 隕石を削除
             const meteorIndex = meteors.indexOf(target);
@@ -500,13 +513,20 @@ function drawScore() {
 }
 
 // ゲームクリア/オーバーのメッセージを表示する
-function showEndScreen(mainText, subText) {
+function showEndScreen(mainText, subText, showContinue) {
     // ガイドを非表示にする
     hiraGuideElement.hide();
     romajiGuideElement.hide();
     // メッセージを設定して終了画面を表示
     select('#end-main-text').html(mainText);
     select('#end-sub-text').html(subText);
+
+    // ボタンの表示を制御
+    if (showContinue) {
+        select('#continue-btn').show();
+    } else {
+        select('#continue-btn').hide();
+    }
     select('#end-screen').style('display', 'flex'); // flexで表示
     noLoop(); // ゲームの描画ループを停止
 }
@@ -517,6 +537,7 @@ function resetGame() {
     meteors = [];
     beams = [];
     explosions = [];
+    isEndlessMode = false; // エンドレスモードをリセット
     gameState = GAME_STATE.DIFFICULTY_SELECT; // ゲームの状態を難易度選択に戻す
     select('#end-screen').hide(); // 終了画面を非表示
     select('#difficulty-screen').show(); // 難易度選択画面を再表示
