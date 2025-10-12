@@ -112,10 +112,15 @@ function setup() {
     populateSelect('#number-select', 1, 40, '番');
 
     select('#confirm-user-info').mousePressed(() => {
-        // ユーザー情報画面を非表示にし、難易度選択画面を表示
-        select('#user-info-screen').hide();
-        select('#difficulty-screen').show();
-        gameState = GAME_STATE.DIFFICULTY_SELECT;
+        const gradeSelect = select('#grade-select');
+        if (gradeSelect.value() === '0学年') {
+            alert('学年をえらびましょう');
+        } else {
+            // ユーザー情報画面を非表示にし、難易度選択画面を表示
+            select('#user-info-screen').hide();
+            select('#difficulty-screen').show();
+            gameState = GAME_STATE.DIFFICULTY_SELECT;
+        }
     });
 
     // 難易度選択ボタンの処理
@@ -144,7 +149,7 @@ function setup() {
     frameRate(60);
     
     // テキストのスタイル設定
-    textFont('DotGothic16');
+    textFont('Press Start 2P');
     textAlign(CENTER, CENTER);
 }
 
