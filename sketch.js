@@ -3,7 +3,8 @@ const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
 
-let wordLists = []; // 全レベルの単語リストを格納する配列
+let wordListLv1 = []; // レベル1の単語リスト
+let wordListLv2 = []; // レベル2の単語リスト
 let meteors = []; // 隕石を管理する配列
 let score = 0;
 let stars = []; // 星空を管理する配列
@@ -12,12 +13,13 @@ let romajiGuideElement; // ローマ字ガイドのHTML要素
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
-    START: 'start',
+    USER_INFO_SELECT: 'userInfoSelect',
+    DIFFICULTY_SELECT: 'difficultySelect',
     PLAYING: 'playing',
     CLEARED: 'cleared',
     GAME_OVER: 'gameOver'
 };
-let gameState = GAME_STATE.START;
+let gameState = GAME_STATE.USER_INFO_SELECT;
 let currentLevel = 1; // 現在の難易度
 
 // ローマ字とひらがなの対応表
@@ -99,19 +101,34 @@ function setup() {
     hiraGuideElement = select('#hira-guide');
     romajiGuideElement = select('#romaji-guide');
 
+    // --- 画面の初期表示設定 ---
+    select('#difficulty-screen').hide();
+    hiraGuideElement.hide();
+    romajiGuideElement.hide();
+
+    // --- ユーザー情報選択画面のセットアップ ---
+    populateSelect('#grade-select', 0, 6, '学年');
+    populateSelect('#class-select', 1, 4, '組');
+    populateSelect('#number-select', 1, 40, '番');
+
+    select('#confirm-user-info').mousePressed(() => {
+        // ユーザー情報画面を非表示にし、難易度選択画面を表示
+        select('#user-info-screen').hide();
+        select('#difficulty-screen').show();
+        gameState = GAME_STATE.DIFFICULTY_SELECT;
+    });
+
     // 難易度選択ボタンの処理
     const levelButtons = selectAll('.level-btn');
     levelButtons.forEach(button => {
-        button.mousePressed(() => {
-            // ボタンのdata-level属性からレベル番号を取得
-            const level = parseInt(button.attribute('data-level'), 10);
-            startGame(level);
-        });
+        // ユーザー情報確認ボタンは除外
+        if (button.id() !== 'confirm-user-info') {
+            button.mousePressed(() => {
+                const level = parseInt(button.attribute('data-level'), 10);
+                startGame(level);
+            });
+        }
     });
-
-    // ガイドを最初は非表示に
-    hiraGuideElement.hide();
-    romajiGuideElement.hide();
 
     // 星を初期化
     for (let i = 0; i < 200; i++) {
@@ -127,7 +144,7 @@ function setup() {
     frameRate(60);
     
     // テキストのスタイル設定
-    textFont('Press Start 2P');
+    textFont('DotGothic16');
     textAlign(CENTER, CENTER);
 }
 
@@ -135,9 +152,18 @@ function setup() {
 function startGame(level) {
     currentLevel = level;
     gameState = GAME_STATE.PLAYING;
+    select('#difficulty-screen').hide();
     hiraGuideElement.show();
     romajiGuideElement.show();
-    select('#start-screen').hide();
+}
+
+// ドロップダウンメニューを動的に生成する関数
+function populateSelect(selector, start, end, label) {
+    const sel = select(selector);
+    sel.option(`${start}${label}`); // 0学年、1組、1番など
+    for (let i = start + 1; i <= end; i++) {
+        sel.option(`${i}${label}`);
+    }
 }
 
 // 毎フレーム呼ばれる描画関数
@@ -146,8 +172,8 @@ function draw() {
 
     drawStars(); // 星を描画
 
-    // スタート画面では何もしない
-    if (gameState === GAME_STATE.START) {
+    // プレイ中以外はゲームロジックを実行しない
+    if (gameState !== GAME_STATE.PLAYING) {
         return;
     }
 
@@ -172,18 +198,16 @@ function draw() {
 
 // スプレッドシートから読み込んだデータを解析する関数
 function parseWords(data) {
-    // 各行をループ
     for (const line of data) {
         const words = line.split(',');
-        // 各列（レベル）をループ
-        for (let i = 0; i < words.length; i++) {
-            if (!wordLists[i]) {
-                wordLists[i] = []; // 対応するレベルの配列がなければ作成
-            }
-            const word = words[i].trim();
-            if (word) {
-                wordLists[i].push(word);
-            }
+        const word1 = words[0] ? words[0].trim() : '';
+        const word2 = words[1] ? words[1].trim() : '';
+
+        if (word1) {
+            wordListLv1.push(word1);
+        }
+        if (word2) {
+            wordListLv2.push(word2);
         }
     }
 }
@@ -233,8 +257,7 @@ function handleMeteors() {
 
 // 新しい隕石を作成する
 function createMeteor() {
-    // currentLevelは1から始まるので、配列のインデックスは-1する
-    const targetWordList = wordLists[currentLevel - 1] || [];
+    const targetWordList = (currentLevel === 1) ? wordListLv1 : wordListLv2;
 
     // もし単語リストが空なら何もしない
     if (targetWordList.length === 0) return;
@@ -403,15 +426,15 @@ function drawGameMessage(mainText, subText) {
     text(subText, width / 2, height / 2 + 20);
 
     textSize(16);
-    text("Click to Replay", width / 2, height / 2 + 60);
+    text("クリックしてもう一度", width / 2, height / 2 + 60);
 }
 
 // ゲームをリセットする関数
 function resetGame() {
     score = 0;
     meteors = [];
-    gameState = GAME_STATE.START;
-    select('#start-screen').show();
+    gameState = GAME_STATE.DIFFICULTY_SELECT; // ゲームの状態を難易度選択に戻す
+    select('#difficulty-screen').show(); // 難易度選択画面を再表示
 }
 
 // マウスがクリックされたときに呼ばれるp5.jsの関数
