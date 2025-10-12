@@ -250,8 +250,8 @@ function handleMeteors() {
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
-            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...');
             gameState = GAME_STATE.GAME_OVER;
+            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...');
         }
     }
 }
@@ -417,6 +417,7 @@ function showEndScreen(mainText, subText) {
     select('#end-main-text').html(mainText);
     select('#end-sub-text').html(subText);
     select('#end-screen').style('display', 'flex'); // flexで表示
+    noLoop(); // ゲームの描画ループを停止
 }
 
 // ゲームをリセットする関数
@@ -426,4 +427,5 @@ function resetGame() {
     gameState = GAME_STATE.DIFFICULTY_SELECT; // ゲームの状態を難易度選択に戻す
     select('#end-screen').hide(); // 終了画面を非表示
     select('#difficulty-screen').show(); // 難易度選択画面を再表示
+    loop(); // 停止していた描画ループを再開
 }
