@@ -3,24 +3,25 @@ const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 500000;
 
-let wordListLv1 = []; // レベル1の単語リスト
-let wordListLv2 = []; // レベル2の単語リスト
-let meteors = [];     // 隕石を管理する配列
-let beams = [];       // ビームを管理する配列
-let explosions = [];  // 爆発を管理する配列
+let wordLists = []; // 全レベルの単語リストを格納する配列
+let meteors = []; // 隕石を管理する配列
+let beams = []; // ビームを管理する配列
+let explosions = []; // 爆発を管理する配列
 let score = 0;
 let stars = []; // 星空を管理する配列
 let hiraGuideElement; // ひらがなガイドのHTML要素
 let romajiGuideElement; // ローマ字ガイドのHTML要素
+let rocketImage; // ロケットの画像を格納する変数
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
-    START: 'start',
+    USER_INFO_SELECT: 'userInfoSelect',
+    DIFFICULTY_SELECT: 'difficultySelect',
     PLAYING: 'playing',
     CLEARED: 'cleared',
     GAME_OVER: 'gameOver'
 };
-let gameState = GAME_STATE.START;
+let gameState = GAME_STATE.USER_INFO_SELECT;
 let currentLevel = 1; // 現在の難易度
 
 // ローマ字とひらがなの対応表
@@ -90,6 +91,7 @@ function preload() {
 
     const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk-pjP-Z7GCV3aVLiIYCbYh5b1L4cmSBU0Bix7ZEgvsNy0m1qj6pGrGA4y9n8HChkFzvv45lja0Min/pub?output=csv'; // 必ずご自身のURLに置き換えてください
     loadStrings(SPREADSHEET_URL, parseWords);
+    rocketImage = loadImage('rocket.png'); // ロケット画像を読み込む
 }
 
 // ゲームの初期設定
@@ -102,26 +104,41 @@ function setup() {
     hiraGuideElement = select('#hira-guide');
     romajiGuideElement = select('#romaji-guide');
 
-    // 難易度選択ボタンの処理
-    const startScreen = select('#start-screen');
-    select('#level1-btn').mousePressed(() => {
-        currentLevel = 1;
-        gameState = GAME_STATE.PLAYING;
-        hiraGuideElement.show();
-        romajiGuideElement.show();
-        startScreen.hide();
-    });
-    select('#level2-btn').mousePressed(() => {
-        currentLevel = 2;
-        gameState = GAME_STATE.PLAYING;
-        hiraGuideElement.show();
-        romajiGuideElement.show();
-        startScreen.hide();
-    });
-
-    // ガイドを最初は非表示に
+    // --- 画面の初期表示設定 ---
+    select('#difficulty-screen').hide();
+    select('#end-screen').hide();
     hiraGuideElement.hide();
     romajiGuideElement.hide();
+
+    // --- ユーザー情報選択画面のセットアップ ---
+    populateSelect('#grade-select', 0, 6, '学年');
+    populateSelect('#class-select', 1, 4, '組');
+    populateSelect('#number-select', 1, 40, '番');
+
+    select('#confirm-user-info').mousePressed(() => {
+        const gradeSelect = select('#grade-select');
+        if (gradeSelect.value() === '0学年') {
+            alert('学年をえらびましょう');
+        } else {
+            select('#user-info-screen').hide();
+            select('#difficulty-screen').show();
+            gameState = GAME_STATE.DIFFICULTY_SELECT;
+        }
+    });
+
+    // 難易度選択ボタンの処理
+    const levelButtons = selectAll('.level-btn');
+    levelButtons.forEach(button => {
+        if (button.id() !== 'confirm-user-info' && button.id() !== 'retry-btn') {
+            button.mousePressed(() => {
+                const level = parseInt(button.attribute('data-level'), 10);
+                startGame(level);
+            });
+        }
+    });
+
+    // リトライボタンの処理
+    select('#retry-btn').mousePressed(resetGame);
 
     // 星を初期化
     for (let i = 0; i < 200; i++) {
@@ -137,8 +154,27 @@ function setup() {
     frameRate(60);
     
     // テキストのスタイル設定
-    textFont('Press Start 2P');
+    textFont('Press Start 2P', 'DotGothic16');
     textAlign(CENTER, CENTER);
+}
+
+// ゲームを開始する関数
+function startGame(level) {
+    currentLevel = level;
+    gameState = GAME_STATE.PLAYING;
+    select('#difficulty-screen').hide();
+    hiraGuideElement.show();
+    romajiGuideElement.show();
+    loop(); // ゲーム再開時にループを再開
+}
+
+// ドロップダウンメニューを動的に生成する関数
+function populateSelect(selector, start, end, label) {
+    const sel = select(selector);
+    sel.html(''); // オプションをクリア
+    for (let i = start; i <= end; i++) {
+        sel.option(`${i}${label}`);
+    }
 }
 
 // 毎フレーム呼ばれる描画関数
@@ -147,44 +183,47 @@ function draw() {
 
     drawStars(); // 星を描画
 
-    // スタート画面では何もしない
-    if (gameState === GAME_STATE.START) {
+    // ロケットを描画
+    if (rocketImage) {
+        const rocketWidth = 60;
+        const rocketHeight = rocketWidth * (rocketImage.height / rocketImage.width);
+        const rocketX = width / 2 - rocketWidth / 2;
+        const rocketY = height - rocketHeight;
+        image(rocketImage, rocketX, rocketY, rocketWidth, rocketHeight);
+    }
+
+    // プレイ中以外はゲームロジックを実行しない
+    if (gameState !== GAME_STATE.PLAYING) {
         return;
     }
 
-    if (gameState === GAME_STATE.PLAYING) {
-        // プレイ中の処理
-        handleBeams();
-        handleExplosions();
-        handleMeteors();
-        updateTypingGuide(); // ガイド表示を更新する
-        drawScore();
-        
-        // 50万点でクリア
-        if (score >= GOAL_SCORE) {
-            gameState = GAME_STATE.CLEARED;
-        }
-    } else if (gameState === GAME_STATE.CLEARED) {
-        // ゲームクリア時の表示
-        drawGameMessage('ゲームクリア！', '目的の星に到着した！');
-    } else if (gameState === GAME_STATE.GAME_OVER) {
-        // ゲームオーバー時の表示
-        drawGameMessage('ゲームオーバー', '隕石が地球に衝突した...');
+    // プレイ中の処理
+    handleBeams();
+    handleExplosions();
+    handleMeteors();
+    updateTypingGuide(); // ガイド表示を更新する
+    drawScore();
+    
+    // クリア判定
+    if (score >= GOAL_SCORE) {
+        gameState = GAME_STATE.CLEARED;
+        showEndScreen('ゲームクリア！', '目的の星に到着した！');
     }
 }
 
 // スプレッドシートから読み込んだデータを解析する関数
 function parseWords(data) {
+    wordLists = []; // 初期化
     for (const line of data) {
         const words = line.split(',');
-        const word1 = words[0] ? words[0].trim() : '';
-        const word2 = words[1] ? words[1].trim() : '';
-
-        if (word1) {
-            wordListLv1.push(word1);
-        }
-        if (word2) {
-            wordListLv2.push(word2);
+        for (let i = 0; i < words.length; i++) {
+            if (!wordLists[i]) {
+                wordLists[i] = [];
+            }
+            const word = words[i].trim();
+            if (word) {
+                wordLists[i].push(word);
+            }
         }
     }
 }
@@ -206,7 +245,7 @@ function drawStars() {
 }
 // 隕石の生成、移動、描画を管理
 function handleMeteors() {
-    // 画面上に隕石がなければ、新しい隕石を1つ生成する
+    // 画面上にターゲットにされていない隕石がなければ、新しい隕石を1つ生成する
     if (meteors.length === 0) {
         createMeteor();
     }
@@ -227,6 +266,7 @@ function handleMeteors() {
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
             gameState = GAME_STATE.GAME_OVER;
+            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...');
             break; // ループを抜ける
         }
     }
@@ -234,7 +274,7 @@ function handleMeteors() {
 
 // 新しい隕石を作成する
 function createMeteor() {
-    const targetWordList = (currentLevel === 1) ? wordListLv1 : wordListLv2;
+    const targetWordList = wordLists[currentLevel - 1] || [];
 
     // もし単語リストが空なら何もしない
     if (targetWordList.length === 0) return;
@@ -243,7 +283,7 @@ function createMeteor() {
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
-    const speed = 0.5 + score / 50000; // スコアが上がると少し速くなる
+    const speed = (0.5 + score / 50000) / 2; // 全体の速度を半分に調整
 
     meteors.push({
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
@@ -251,6 +291,7 @@ function createMeteor() {
         typedRomaji: '',     // 現在入力途中のローマ字（例: 'j'）
         // hiraganaToRomajiがnullを返す可能性に対処
         guideRomaji: buildGuideRomaji(word), // ★ ガイド用のローマ字を生成
+        isTargeted: false, // ビームのターゲットになっているか
         nextRomajiOptions: (hiraganaToRomaji(word) || { romajiOptions: [] }).romajiOptions,
 
         x: x,
@@ -277,7 +318,7 @@ function buildGuideRomaji(hira) {
 
 // キーが押されたときにp5.jsによって自動的に呼ばれる関数
 function keyPressed() {
-    // ゲーム開始前は何もしない
+    // プレイ中以外は何もしない
     if (gameState !== GAME_STATE.PLAYING) {
         return;
     }
@@ -295,6 +336,9 @@ function keyPressed() {
     // 画面上のすべての隕石をチェック
     for (let i = meteors.length - 1; i >= 0; i--) {
         const meteor = meteors[i];
+        // 既にターゲットになっている隕石は無視
+        if (meteor.isTargeted) continue;
+
         const newTypedRomaji = meteor.typedRomaji + typedChar;
 
         let partialMatch = false;
@@ -346,80 +390,6 @@ function keyPressed() {
     }
 }
 
-// ビームを生成する関数
-function createBeam(targetMeteor) {
-    const rocketX = width / 2;
-    const rocketY = height - 60; // ロケット画像の上端あたり
-
-    beams.push({
-        x: rocketX,
-        y: rocketY,
-        target: targetMeteor,
-        speed: 25
-    });
-}
-
-// ビームの移動と衝突判定を管理する関数
-function handleBeams() {
-    for (let i = beams.length - 1; i >= 0; i--) {
-        const beam = beams[i];
-        const target = beam.target;
-
-        // ターゲットに向かって移動
-        const angle = atan2(target.y - beam.y, target.x - beam.x);
-        beam.x += cos(angle) * beam.speed;
-        beam.y += sin(angle) * beam.speed;
-
-        // ビームを描画
-        stroke(0, 255, 255); // シアン
-        strokeWeight(4);
-        line(beam.x, beam.y, beam.x - cos(angle) * 10, beam.y - sin(angle) * 10);
-
-        // 衝突判定
-        if (dist(beam.x, beam.y, target.x, target.y) < 25) {
-            createExplosion(target.x, target.y); // 爆発を生成
-            score += target.fullWord.length * 1000; // スコアを加算
-
-            // 隕石を削除
-            const meteorIndex = meteors.indexOf(target);
-            if (meteorIndex > -1) {
-                meteors.splice(meteorIndex, 1);
-            }
-
-            beams.splice(i, 1); // ビームを削除
-        }
-    }
-}
-
-// 爆発を生成する関数
-function createExplosion(x, y) {
-    explosions.push({
-        x: x,
-        y: y,
-        size: 10,
-        life: 30, // 30フレーム（0.5秒）で消える
-        maxLife: 30
-    });
-}
-
-// 爆発の描画とライフサイクルを管理する関数
-function handleExplosions() {
-    noStroke();
-    for (let i = explosions.length - 1; i >= 0; i--) {
-        const exp = explosions[i];
-        const progress = exp.life / exp.maxLife; // 0 (終了) -> 1 (開始)
-        const alpha = 255 * progress;
-        const currentSize = (exp.maxLife - exp.life) * 2;
-
-        fill(255, 255, 0, alpha); // 黄色
-        ellipse(exp.x, exp.y, currentSize);
-
-        exp.life--;
-        if (exp.life <= 0) {
-            explosions.splice(i, 1);
-        }
-    }
-}
 // 画面下部にタイピングガイドを表示する関数
 function updateTypingGuide() {
     // ガイド要素を表示状態にする
@@ -458,26 +428,16 @@ function drawScore() {
     text(`スコア: ${score}`, 10, 10);
 }
 
-// ゲームクリア/オーバーのメッセージを表示する
-function drawGameMessage(mainText, subText) {
+// ゲーム終了画面を表示する
+function showEndScreen(mainText, subText) {
     // ガイドを非表示にする
     hiraGuideElement.hide();
     romajiGuideElement.hide();
-
-    fill(0, 0, 0, 150); // 半透明の黒い四角
-    rect(0, height / 2 - 80, width, 160);
-    
-    fill(255, 255, 0); // 黄色
-    textSize(40);
-    textAlign(CENTER, CENTER);
-    text(mainText, width / 2, height / 2 - 30);
-    
-    fill(255); // 白
-    textSize(20);
-    text(subText, width / 2, height / 2 + 20);
-
-    textSize(16);
-    text("Click to Replay", width / 2, height / 2 + 60);
+    // メッセージを設定して終了画面を表示
+    select('#end-main-text').html(mainText);
+    select('#end-sub-text').html(subText);
+    select('#end-screen').style('display', 'flex'); // flexで表示
+    noLoop(); // ゲームの描画ループを停止
 }
 
 // ゲームをリセットする関数
@@ -486,13 +446,8 @@ function resetGame() {
     meteors = [];
     beams = [];
     explosions = [];
-    gameState = GAME_STATE.START;
-    select('#start-screen').show();
-}
-
-// マウスがクリックされたときに呼ばれるp5.jsの関数
-function mousePressed() {
-    if (gameState === GAME_STATE.CLEARED || gameState === GAME_STATE.GAME_OVER) {
-        resetGame();
-    }
+    gameState = GAME_STATE.DIFFICULTY_SELECT; // ゲームの状態を難易度選択に戻す
+    select('#end-screen').hide(); // 終了画面を非表示
+    select('#difficulty-screen').show(); // 難易度選択画面を再表示
+    loop(); // 停止していた描画ループを再開
 }
