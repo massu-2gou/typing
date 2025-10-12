@@ -14,8 +14,17 @@
 </head>
 <body>
     <h1>宇宙タイピング</h1>
-    <!-- 難易度選択画面 -->
-    <div id="start-screen">
+
+    <!-- ユーザー情報選択画面 -->
+    <div id="user-info-screen">
+        <select id="grade-select"></select>
+        <select id="class-select"></select>
+        <select id="number-select"></select>
+        <button id="confirm-user-info" class="level-btn">決定</button>
+    </div>
+
+    <!-- 難易度選択画面 (IDを変更) -->
+    <div id="difficulty-screen">
         <button class="level-btn" data-level="1">かんたん</button>
         <button class="level-btn" data-level="2">むずかしい</button>
     </div>
