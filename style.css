@@ -45,6 +45,35 @@ h1 {
     color: #111;
 }
 
+/* ゲームオーバー/クリア画面 */
+#end-screen {
+    /* 最初は非表示 */
+    display: none;
+    position: absolute;
+    /* 画面全体を覆う */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* 半透明の黒い背景 */
+    /* コンテンツを中央に配置 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#end-main-text {
+    font-size: 40px;
+    color: #ffff00; /* 黄色 */
+    margin-bottom: 20px;
+}
+
+#end-sub-text {
+    font-size: 20px;
+    margin-bottom: 40px;
+}
+
 /* ゲーム画面のコンテナ */
 #canvas-container {
     margin: 20px auto;
