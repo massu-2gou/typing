@@ -12,8 +12,21 @@ h1 {
     font-size: 24px;
 }
 
-/* 難易度選択 */
-#start-screen {
+/* 各画面のコンテナ */
+#user-info-screen, #difficulty-screen {
+    margin-bottom: 20px;
+}
+
+/* ドロップダウンメニュー */
+#user-info-screen select {
+    font-family: 'DotGothic16', sans-serif;
+    font-size: 16px;
+    padding: 5px;
+    margin: 0 5px;
+}
+
+/* ボタン共通 */
+.level-btn {
     margin-bottom: 20px;
 }
 
