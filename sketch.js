@@ -211,7 +211,7 @@ function continueGame() {
     select('#end-screen').hide();
     countdownTimer = 3; // タイマーをリセット
     gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
-    loop(); // 停止していた描画ループを再開する
+    // loop()は描画ループを即座に再開するため、ここでは呼び出さない
 }
 
 // ランキングを読み込んで表示する非同期関数
@@ -223,8 +223,10 @@ async function loadAndDisplayRankings() {
 
 // 指定されたレベルのランキングを取得してHTMLに表示する
 async function fetchRanking(level, listSelector) {
-    const listElement = select(listSelector);
-    listElement.html('<li>読み込み中...</li>'); // 読み込み中表示
+    // p5.jsのselect()ではなく、標準のdocument.querySelectorを使用する
+    const listElement = document.querySelector(listSelector);
+    if (!listElement) return; // 要素が見つからなければ終了
+    listElement.innerHTML = '<li>読み込み中...</li>'; // 読み込み中表示
 
     try {
         const response = await fetch(`${GAS_URL}?level=${level}`);
@@ -232,18 +234,17 @@ async function fetchRanking(level, listSelector) {
             throw new Error('Network response was not ok');
         }
         const ranking = await response.json();
-
-        listElement.html(''); // リストをクリア
+        listElement.innerHTML = ''; // リストをクリア
         if (ranking.length === 0) {
-            listElement.html('<li>まだ記録がありません</li>');
+            listElement.innerHTML = '<li>まだ記録がありません</li>';
         } else {
             ranking.forEach(player => {
-                listElement.html(`<li>${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`, true);
+                listElement.innerHTML += `<li>${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`;
             });
         }
     } catch (error) {
         console.error('ランキングの取得に失敗しました:', error);
-        listElement.html('<li>読み込みに失敗しました</li>');
+        listElement.innerHTML = '<li>読み込みに失敗しました</li>';
     }
 }
 
@@ -624,7 +625,7 @@ function resetGame() {
     loadAndDisplayRankings();
     select('#end-screen').hide(); // 終了画面を非表示
     select('#difficulty-screen').show(); // 難易度選択画面を再表示
-    loop(); // 停止していた描画ループを再開
+    loop(); // ゲームをリセットし、画面遷移が完了したこのタイミングで描画ループを再開する
 }
 
 // スコアをGASに送信する非同期関数
