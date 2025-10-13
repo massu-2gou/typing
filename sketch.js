@@ -211,7 +211,7 @@ function continueGame() {
     select('#end-screen').hide();
     countdownTimer = 3; // タイマーをリセット
     gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
-    // loop()は描画ループを即座に再開するため、ここでは呼び出さない
+    loop(); // 停止していた描画ループを再開する
 }
 
 // ランキングを読み込んで表示する非同期関数
