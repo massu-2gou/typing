@@ -26,8 +26,20 @@
 
     <!-- 難易度選択画面 (IDを変更) -->
     <div id="difficulty-screen">
-        <button class="level-btn" data-level="1">かんたん</button>
-        <button class="level-btn" data-level="2">むずかしい</button>
+        <div class="difficulty-column">
+            <button class="level-btn" data-level="1">かんたん</button>
+            <div id="ranking-easy" class="ranking-container">
+                <h2>かんたん ランキング</h2>
+                <ol id="ranking-list-easy"></ol>
+            </div>
+        </div>
+        <div class="difficulty-column">
+            <button class="level-btn" data-level="2">むずかしい</button>
+            <div id="ranking-hard" class="ranking-container">
+                <h2>むずかしい ランキング</h2>
+                <ol id="ranking-list-hard"></ol>
+            </div>
+        </div>
     </div>
 
     <!-- ゲームオーバー/クリア画面用のコンテナ -->
