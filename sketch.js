@@ -217,16 +217,22 @@ function continueGame() {
 // ランキングを読み込んで表示する非同期関数
 async function loadAndDisplayRankings() {
     // かんたん・むずかしいの両方のランキングを取得
-    fetchRanking(1, '#ranking-list-easy');
-    fetchRanking(2, '#ranking-list-hard');
+    fetchRanking(1, '#ranking-list-easy', '#ranking-list-easy-grade', '#ranking-title-easy-grade');
+    fetchRanking(2, '#ranking-list-hard', '#ranking-list-hard-grade', '#ranking-title-hard-grade');
 }
 
 // 指定されたレベルのランキングを取得してHTMLに表示する
-async function fetchRanking(level, listSelector) {
+async function fetchRanking(level, overallListSelector, gradeListSelector, gradeTitleSelector) {
     // p5.jsのselect()ではなく、標準のdocument.querySelectorを使用する
-    const listElement = document.querySelector(listSelector);
-    if (!listElement) return; // 要素が見つからなければ終了
-    listElement.innerHTML = '<li>読み込み中...</li>'; // 読み込み中表示
+    const overallListElement = document.querySelector(overallListSelector);
+    const gradeListElement = document.querySelector(gradeListSelector);
+    const gradeTitleElement = document.querySelector(gradeTitleSelector);
+
+    if (!overallListElement || !gradeListElement || !gradeTitleElement) return;
+
+    overallListElement.innerHTML = '<li>読み込み中...</li>';
+    gradeListElement.innerHTML = '<li>読み込み中...</li>';
+    gradeTitleElement.innerHTML = `${userInfo.grade.replace('学年','')}学年内ランキング`;
 
     try {
         // ユーザー情報もクエリパラメータとして送信
@@ -239,28 +245,52 @@ async function fetchRanking(level, listSelector) {
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        const data = await response.json();
-        const top5 = data.top5;
-        const userRecord = data.userRecord;
+        const rankingData = await response.json();
 
-        listElement.innerHTML = ''; // リストをクリア
-        if (top5.length === 0) {
-            listElement.innerHTML = '<li>まだ記録がありません</li>';
-        } else {
-            top5.forEach(player => {
-                listElement.innerHTML += `<li>${player.rank}位: ${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`;
-            });
+        // --- 全体ランキングの表示 ---
+        displayRankingList(overallListElement, rankingData.overall, false);
 
-            // 自分の記録がトップ5に入っていない、かつ記録が存在する場合
-            const isUserInTop5 = userRecord && top5.some(p => p.rank === userRecord.rank);
-            if (userRecord && !isUserInTop5) {
-                listElement.innerHTML += `<li style="color: #ffff00;">...</li>`; // 区切り
-                listElement.innerHTML += `<li style="color: #ffff00;">${userRecord.rank}位: あなたの記録 - ${userRecord.score}点</li>`;
-            }
-        }
+        // --- 学年内ランキングの表示 ---
+        displayRankingList(gradeListElement, rankingData.grade, true);
+
     } catch (error) {
         console.error('ランキングの取得に失敗しました:', error);
-        listElement.innerHTML = '<li>読み込みに失敗しました</li>';
+        overallListElement.innerHTML = '<li>読み込みに失敗しました</li>';
+        gradeListElement.innerHTML = '<li>読み込みに失敗しました</li>';
+    }
+}
+
+// ランキングリストを描画する補助関数
+function displayRankingList(listElement, ranking, isGradeRanking) {
+    const top5 = ranking.top5;
+    const userRecord = ranking.userRecord;
+
+    listElement.innerHTML = ''; // リストをクリア
+    if (top5.length === 0) {
+        listElement.innerHTML = '<li>まだ記録がありません</li>';
+    } else {
+        top5.forEach(player => {
+            const rank = isGradeRanking ? player.gradeRank : player.rank;
+            // 現在のプレイヤーが自分自身かどうかを判定
+            const isCurrentUser = userRecord && (isGradeRanking ? player.gradeRank === userRecord.gradeRank : player.rank === userRecord.rank);
+            if (isCurrentUser) {
+                // 自分の記録なら黄色で表示
+                listElement.innerHTML += `<li style="color: #ffff00;">${rank}位: ${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`;
+            } else {
+                listElement.innerHTML += `<li>${rank}位: ${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`;
+            }
+        });
+
+        // 自分の記録がトップ5に入っていない、かつ記録が存在する場合
+        const isUserInTop5 = userRecord && top5.some(p => (isGradeRanking ? p.gradeRank === userRecord.gradeRank : p.rank === userRecord.rank));
+        if (userRecord && !isUserInTop5) {
+            const rank = isGradeRanking ? userRecord.gradeRank : userRecord.rank;
+            listElement.innerHTML += `<li style="color: #ffff00;">...</li>`; // 区切り
+            listElement.innerHTML += `<li style="color: #ffff00;">${rank}位: あなたの記録 - ${userRecord.score}点</li>`;
+        } else {
+            // 自分の記録がトップ5に入っているが、リストに表示されていない場合（6位以降だが記録はある場合など）
+            // このケースは現状のロジックでは発生しにくいが、念のため
+        }
     }
 }
 
