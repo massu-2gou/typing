@@ -576,7 +576,8 @@ async function sendScore(currentScore) {
         grade: userInfo.grade.replace('学年', ''),
         userClass: userInfo.userClass.replace('組', ''),
         number: userInfo.number.replace('番', ''),
-        score: currentScore
+        score: currentScore,
+        level: currentLevel // 難易度情報を追加
     };
 
     try {
