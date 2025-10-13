@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/addons/p5.sound.min.js"></script>
     <!-- CSSファイルを読み込みます -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -34,8 +35,10 @@
         <div id="end-message-container">
             <div id="end-main-text"></div>
             <div id="end-sub-text"></div>
-            <button id="continue-btn" class="level-btn">さらに続ける</button>
-            <button id="retry-btn" class="level-btn">もう一度プレイ</button> <!-- ゲームオーバー時に表示 -->
+            <div id="end-button-container">
+                <button id="continue-btn" class="level-btn">さらに続ける</button>
+                <button id="retry-btn" class="level-btn">もう一度プレイ</button>
+            </div>
         </div>
     </div>
 
