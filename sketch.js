@@ -33,6 +33,7 @@ let gameState = GAME_STATE.USER_INFO_SELECT;
 let currentLevel = 1; // 現在の難易度
 let isEndlessMode = false; // エンドレスモードかどうか
 let countdownTimer = 3; // カウントダウン用のタイマー
+let comboCount = 0; // エンドレスモード用のコンボカウンター
 
 // ユーザー情報を保持する変数
 let userInfo = { grade: '', userClass: '', number: '' };
@@ -426,7 +427,7 @@ function createMeteor() {
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
-    const speed = 0.4 + score / 75000; // 速度を少し遅く調整
+    const speed = 0.3 + score / 100000; // 隕石の速度をさらに遅く調整
 
     meteors.push({
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
@@ -559,7 +560,19 @@ function handleBeams() {
         if (dist(beam.x, beam.y, target.x, target.y) < 25) {
             bombSound.play(); // 爆発音を再生
             createExplosion(target.x, target.y);
-            score += 50000; // スコアを5万点加算
+            
+            let earnedScore = 0;
+            if (isEndlessMode) {
+                // エンドレスモード：コンボ数に応じてスコアが減少
+                comboCount++;
+                // 10000点をベースに、コンボ数が増えるほど減衰させる
+                earnedScore = Math.max(1000, 10000 - (comboCount * 200));
+            } else {
+                // 通常モード：単語の長さに応じてスコアを加算
+                earnedScore = 15000 + target.fullWord.length * 4000;
+            }
+            score += earnedScore;
+
 
             // 隕石を削除
             const meteorIndex = meteors.indexOf(target);
@@ -671,6 +684,7 @@ function resetGame() {
     beams = [];
     explosions = [];
     isEndlessMode = false; // エンドレスモードをリセット
+    comboCount = 0; // コンボカウントをリセット
     gameState = GAME_STATE.DIFFICULTY_SELECT; // ゲームの状態を難易度選択に戻す
     // ランキングを更新してから表示
     loadAndDisplayRankings();
