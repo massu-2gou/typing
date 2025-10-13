@@ -209,7 +209,7 @@ function continueGame() {
     select('#end-screen').hide();
     countdownTimer = 3; // タイマーをリセット
     gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
-    // loop()はdraw()の次のフレームで再開されるため、ここでは不要
+    loop(); // 停止していた描画ループを再開する
 }
 
 // 毎フレーム呼ばれる描画関数
