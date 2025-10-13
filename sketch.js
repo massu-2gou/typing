@@ -21,6 +21,7 @@ let clearImage; // クリア画像
 const GAME_STATE = {
     USER_INFO_SELECT: 'userInfoSelect',
     DIFFICULTY_SELECT: 'difficultySelect',
+    COUNTDOWN: 'countdown', // カウントダウン状態を追加
     PLAYING: 'playing',
     CLEARED: 'cleared',
     GAME_OVER: 'gameOver'
@@ -28,6 +29,7 @@ const GAME_STATE = {
 let gameState = GAME_STATE.USER_INFO_SELECT;
 let currentLevel = 1; // 現在の難易度
 let isEndlessMode = false; // エンドレスモードかどうか
+let countdownTimer = 3; // カウントダウン用のタイマー
 
 // ユーザー情報を保持する変数
 let userInfo = { grade: '', userClass: '', number: '' };
@@ -180,10 +182,9 @@ function setup() {
 // ゲームを開始する関数
 function startGame(level) {
     currentLevel = level;
-    gameState = GAME_STATE.PLAYING;
     select('#difficulty-screen').hide();
-    hiraGuideElement.show();
-    romajiGuideElement.show();
+    countdownTimer = 3; // タイマーをリセット
+    gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
     loop(); // ゲーム再開時にループを再開
 }
 
@@ -199,10 +200,9 @@ function populateSelect(selector, start, end, label) {
 // エンドレスモードを続ける関数
 function continueGame() {
     isEndlessMode = true;
-    gameState = GAME_STATE.PLAYING;
     select('#end-screen').hide();
-    hiraGuideElement.show();
-    romajiGuideElement.show();
+    countdownTimer = 3; // タイマーをリセット
+    gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
     loop(); // 停止していたループを再開
 }
 
@@ -221,6 +221,24 @@ function draw() {
         image(rocketImage, rocketX, rocketY, rocketWidth, rocketHeight);
     }
 
+    // カウントダウン中の処理
+    if (gameState === GAME_STATE.COUNTDOWN) {
+        // カウントダウンの数字を描画
+        fill(255, 255, 0);
+        textSize(80);
+        textAlign(CENTER, CENTER);
+        text(ceil(countdownTimer), width / 2, height / 2);
+
+        countdownTimer -= deltaTime / 1000; // 経過時間でタイマーを減らす
+
+        if (countdownTimer <= 0) {
+            gameState = GAME_STATE.PLAYING; // ゲームプレイ状態へ
+            hiraGuideElement.show(); // ガイドを表示
+            romajiGuideElement.show();
+        }
+        return; // カウントダウン中は以下の処理を行わない
+    }
+
     // プレイ中以外はゲームロジックを実行しない
     if (gameState !== GAME_STATE.PLAYING) {
         return;
@@ -235,6 +253,7 @@ function draw() {
     
     // クリア判定
     if (score >= GOAL_SCORE && !isEndlessMode) {
+        sendScore(score); // クリア時にスコアを送信
         gameState = GAME_STATE.CLEARED;
         showEndScreen('ゲームクリア！', '目的の星に到着した！', true, clearImage);
     }
@@ -294,6 +313,7 @@ function handleMeteors() {
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
+            sendScore(score); // ゲームオーバー時にスコアを送信
             showEndScreen('ゲームオーバー', '隕石が地球に衝突した...', false);
             gameState = GAME_STATE.GAME_OVER;
             break; // ループを抜ける
@@ -550,9 +570,6 @@ function showEndScreen(mainText, subText, showContinue, endImage = null) {
 
 // ゲームをリセットする関数
 function resetGame() {
-    // スコアを送信してからリセット処理を行う
-    sendScore(score);
-
     score = 0;
     meteors = [];
     beams = [];
