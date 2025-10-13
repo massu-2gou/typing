@@ -229,18 +229,34 @@ async function fetchRanking(level, listSelector) {
     listElement.innerHTML = '<li>読み込み中...</li>'; // 読み込み中表示
 
     try {
-        const response = await fetch(`${GAS_URL}?level=${level}`);
+        // ユーザー情報もクエリパラメータとして送信
+        const grade = userInfo.grade.replace('学年', '');
+        const userClass = userInfo.userClass.replace('組', '');
+        const number = userInfo.number.replace('番', '');
+        const url = `${GAS_URL}?level=${level}&grade=${grade}&userClass=${userClass}&number=${number}`;
+
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        const ranking = await response.json();
+        const data = await response.json();
+        const top5 = data.top5;
+        const userRecord = data.userRecord;
+
         listElement.innerHTML = ''; // リストをクリア
-        if (ranking.length === 0) {
+        if (top5.length === 0) {
             listElement.innerHTML = '<li>まだ記録がありません</li>';
         } else {
-            ranking.forEach(player => {
-                listElement.innerHTML += `<li>${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`;
+            top5.forEach(player => {
+                listElement.innerHTML += `<li>${player.rank}位: ${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`;
             });
+
+            // 自分の記録がトップ5に入っていない、かつ記録が存在する場合
+            const isUserInTop5 = userRecord && top5.some(p => p.rank === userRecord.rank);
+            if (userRecord && !isUserInTop5) {
+                listElement.innerHTML += `<li style="color: #ffff00;">...</li>`; // 区切り
+                listElement.innerHTML += `<li style="color: #ffff00;">${userRecord.rank}位: あなたの記録 - ${userRecord.score}点</li>`;
+            }
         }
     } catch (error) {
         console.error('ランキングの取得に失敗しました:', error);
@@ -375,7 +391,7 @@ function createMeteor() {
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
-    const speed = 0.5 + score / 50000; // スコアが上がると少し速くなる
+    const speed = 0.4 + score / 75000; // 速度を少し遅く調整
 
     meteors.push({
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
