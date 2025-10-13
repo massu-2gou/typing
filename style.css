@@ -13,8 +13,14 @@ h1 {
 }
 
 /* 各画面のコンテナ */
-#user-info-screen, #difficulty-screen {
+#user-info-screen {
     margin-bottom: 20px;
+}
+#difficulty-screen {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    align-items: flex-start;
 }
 
 /* ドロップダウンメニュー */
@@ -67,6 +73,34 @@ h1 {
 #end-sub-text {
     font-size: 20px;
     margin-bottom: 40px;
+}
+
+#end-button-container {
+    display: flex;
+    justify-content: center;
+}
+
+/* ランキング */
+.difficulty-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ranking-container {
+    border: 2px solid #00ffff;
+    padding: 10px 20px;
+    margin-top: 20px;
+    width: 300px;
+}
+
+.ranking-container h2 {
+    font-size: 18px;
+    margin-top: 0;
+}
+
+.ranking-container ol {
+    text-align: left;
 }
 
 /* ゲーム画面のコンテナ */
