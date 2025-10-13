@@ -144,6 +144,8 @@ function setup() {
             userInfo.number = select('#number-select').value();
 
             select('#user-info-screen').hide();
+            // ランキングを読み込んでから表示
+            loadAndDisplayRankings();
             select('#difficulty-screen').show();
             gameState = GAME_STATE.DIFFICULTY_SELECT;
         }
@@ -210,6 +212,39 @@ function continueGame() {
     countdownTimer = 3; // タイマーをリセット
     gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
     loop(); // 停止していた描画ループを再開する
+}
+
+// ランキングを読み込んで表示する非同期関数
+async function loadAndDisplayRankings() {
+    // かんたん・むずかしいの両方のランキングを取得
+    fetchRanking(1, '#ranking-list-easy');
+    fetchRanking(2, '#ranking-list-hard');
+}
+
+// 指定されたレベルのランキングを取得してHTMLに表示する
+async function fetchRanking(level, listSelector) {
+    const listElement = select(listSelector);
+    listElement.html('<li>読み込み中...</li>'); // 読み込み中表示
+
+    try {
+        const response = await fetch(`${GAS_URL}?level=${level}`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const ranking = await response.json();
+
+        listElement.html(''); // リストをクリア
+        if (ranking.length === 0) {
+            listElement.html('<li>まだ記録がありません</li>');
+        } else {
+            ranking.forEach(player => {
+                listElement.html(`<li>${player.grade}年${player.userClass}組${player.number}番 - ${player.score}点</li>`, true);
+            });
+        }
+    } catch (error) {
+        console.error('ランキングの取得に失敗しました:', error);
+        listElement.html('<li>読み込みに失敗しました</li>');
+    }
 }
 
 // 毎フレーム呼ばれる描画関数
@@ -585,6 +620,8 @@ function resetGame() {
     explosions = [];
     isEndlessMode = false; // エンドレスモードをリセット
     gameState = GAME_STATE.DIFFICULTY_SELECT; // ゲームの状態を難易度選択に戻す
+    // ランキングを更新してから表示
+    loadAndDisplayRankings();
     select('#end-screen').hide(); // 終了画面を非表示
     select('#difficulty-screen').show(); // 難易度選択画面を再表示
     loop(); // 停止していた描画ループを再開
