@@ -12,6 +12,7 @@ let stars = []; // 星空を管理する配列
 let hiraGuideElement; // ひらがなガイドのHTML要素
 let romajiGuideElement; // ローマ字ガイドのHTML要素
 let rocketImage; // ロケットの画像を格納する変数
+let clearImage; // クリア画像
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
@@ -93,6 +94,7 @@ function preload() {
     const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTk-pjP-Z7GCV3aVLiIYCbYh5b1L4cmSBU0Bix7ZEgvsNy0m1qj6pGrGA4y9n8HChkFzvv45lja0Min/pub?output=csv'; // 必ずご自身のURLに置き換えてください
     loadStrings(SPREADSHEET_URL, parseWords);
     rocketImage = loadImage('rocket.png'); // ロケット画像を読み込む
+    clearImage = loadImage('clear.png'); // クリア画像を読み込む
 }
 
 // ゲームの初期設定
@@ -140,15 +142,7 @@ function setup() {
     });
 
     // 「さらに続ける」ボタンの処理
-    select('#continue-btn').mousePressed(() => {
-        isEndlessMode = true;
-        gameState = GAME_STATE.PLAYING;
-        select('#end-screen').hide();
-        // ガイドを再表示
-        hiraGuideElement.show();
-        romajiGuideElement.show();
-        loop(); // 停止していたループを再開
-    });
+    select('#continue-btn').mousePressed(continueGame);
 
     // リトライボタンの処理
     select('#retry-btn').mousePressed(resetGame);
@@ -190,6 +184,16 @@ function populateSelect(selector, start, end, label) {
     }
 }
 
+// エンドレスモードを続ける関数
+function continueGame() {
+    isEndlessMode = true;
+    gameState = GAME_STATE.PLAYING;
+    select('#end-screen').hide();
+    hiraGuideElement.show();
+    romajiGuideElement.show();
+    loop(); // 停止していたループを再開
+}
+
 // 毎フレーム呼ばれる描画関数
 function draw() {
     background(0, 0, 20); // 濃い紺色の背景（宇宙）
@@ -220,7 +224,7 @@ function draw() {
     // クリア判定
     if (score >= GOAL_SCORE && !isEndlessMode) {
         gameState = GAME_STATE.CLEARED;
-        showEndScreen('ゲームクリア！', '目的の星に到着した！', true); // Continueボタンを表示
+        showEndScreen('ゲームクリア！', '目的の星に到着した！', true, clearImage);
     }
 }
 
@@ -278,7 +282,7 @@ function handleMeteors() {
 
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
-            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...', false); // Continueボタンを非表示
+            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...', false);
             gameState = GAME_STATE.GAME_OVER;
             break; // ループを抜ける
         }
@@ -296,7 +300,7 @@ function createMeteor() {
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
-    const speed = (0.5 + score / 50000) / 2; // 全体の速度を半分に調整
+    const speed = 0.5 + score / 50000; // スコアが上がると少し速くなる
 
     meteors.push({
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
@@ -337,20 +341,19 @@ function keyPressed() {
     }
 
     // ゲームプレイ中以外、またはSHIFTキーなどの特殊キーの場合は何もしない
-    if (gameState !== GAME_STATE.PLAYING || key.length > 1) {
+    if (key.length > 1) {
         return;
     }
 
     // 押されたキーは小文字として扱う
     const typedChar = key.toLowerCase();
 
-    let anyMatch = false;
-
     // 画面上のすべての隕石をチェック
     for (let i = meteors.length - 1; i >= 0; i--) {
         const meteor = meteors[i];
         // 既にターゲットになっている隕石は無視
         if (meteor.isTargeted) continue;
+
         const newTypedRomaji = meteor.typedRomaji + typedChar;
 
         let partialMatch = false;
@@ -378,27 +381,21 @@ function keyPressed() {
                     }
                 }
                 anyMatch = true;
-                break;
+                return; // 一致したら他の隕石はチェックしない
             } else if (option.startsWith(newTypedRomaji)) { // ローマ字の途中まで一致した場合
                 meteor.typedRomaji = newTypedRomaji;
                 partialMatch = true;
                 anyMatch = true;
-                break;
+                return; // 途中一致でも他の隕石はチェックしない
             }
-        }
-        if (partialMatch) {
-            // 途中まで一致する隕石があったら、他の隕石はもうチェックしない
-            // （例：「s」と打った時に「sushi」と「sakana」の両方が反応しないように）
-            break;
         }
     }
 
-    // どの隕石とも全く一致しなかった場合（タイプミス）の処理
-    if (!anyMatch) {
-        // 入力途中の文字がある場合のみ、入力をリセットする
-        if (meteors.length > 0 && meteors[0].typedRomaji !== '') {
-            meteors[0].typedRomaji = '';
-        }
+    // どの隕石のどの候補とも一致しなかった場合（タイプミス）
+    // 入力途中の文字がある一番手前の隕石の入力をリセット
+    const firstMeteor = meteors.find(m => !m.isTargeted);
+    if (firstMeteor && firstMeteor.typedRomaji !== '') {
+        firstMeteor.typedRomaji = '';
     }
 }
 
@@ -475,6 +472,7 @@ function handleExplosions() {
         }
     }
 }
+
 // 画面下部にタイピングガイドを表示する関数
 function updateTypingGuide() {
     // ターゲットにされていない一番手前の隕石を探す
@@ -513,21 +511,28 @@ function drawScore() {
 }
 
 // ゲームクリア/オーバーのメッセージを表示する
-function showEndScreen(mainText, subText, showContinue) {
+function showEndScreen(mainText, subText, showContinue, endImage = null) {
     // ガイドを非表示にする
     hiraGuideElement.hide();
     romajiGuideElement.hide();
-    // メッセージを設定して終了画面を表示
+
+    // 終了画像があれば描画
+    if (endImage) {
+        image(endImage, 0, 0, width, height); // キャンバス全体に表示
+    }
+
+    // メッセージとボタンを表示
     select('#end-main-text').html(mainText);
     select('#end-sub-text').html(subText);
 
-    // ボタンの表示を制御
     if (showContinue) {
         select('#continue-btn').show();
     } else {
         select('#continue-btn').hide();
     }
-    select('#end-screen').style('display', 'flex'); // flexで表示
+    select('#retry-btn').show();
+
+    select('#end-screen').style('display', 'flex');
     noLoop(); // ゲームの描画ループを停止
 }
 
