@@ -16,6 +16,7 @@ let hiraGuideElement; // ひらがなガイドのHTML要素
 let romajiGuideElement; // ローマ字ガイドのHTML要素
 let rocketImage; // ロケットの画像を格納する変数
 let clearImage; // クリア画像
+let bombSound; // 爆発音
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
@@ -104,6 +105,7 @@ function preload() {
     loadStrings(SPREADSHEET_URL, parseWords);
     rocketImage = loadImage('rocket.png'); // ロケット画像を読み込む
     clearImage = loadImage('clear.png'); // クリア画像を読み込む
+    bombSound = loadSound('bomb.wav'); // 爆発音を読み込む
 }
 
 // ゲームの初期設定
@@ -203,7 +205,7 @@ function continueGame() {
     select('#end-screen').hide();
     countdownTimer = 3; // タイマーをリセット
     gameState = GAME_STATE.COUNTDOWN; // 状態をカウントダウンに
-    loop(); // 停止していたループを再開
+    // loop()はdraw()の次のフレームで再開されるため、ここでは不要
 }
 
 // 毎フレーム呼ばれる描画関数
@@ -462,6 +464,7 @@ function handleBeams() {
 
         // 衝突判定
         if (dist(beam.x, beam.y, target.x, target.y) < 25) {
+            bombSound.play(); // 爆発音を再生
             createExplosion(target.x, target.y);
             score += 50000; // スコアを5万点加算
 
