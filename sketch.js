@@ -17,6 +17,8 @@ let romajiGuideElement; // ローマ字ガイドのHTML要素
 let rocketImage; // ロケットの画像を格納する変数
 let clearImage; // クリア画像
 let bombSound; // 爆発音
+let clearSound; // クリア音
+let beamSound; // ビーム音
 
 // ゲームの状態を定数で管理する
 const GAME_STATE = {
@@ -106,6 +108,8 @@ function preload() {
     rocketImage = loadImage('rocket.png'); // ロケット画像を読み込む
     clearImage = loadImage('clear.png'); // クリア画像を読み込む
     bombSound = loadSound('bomb.wav'); // 爆発音を読み込む
+    clearSound = loadSound('clear.mp3'); // クリア音を読み込む
+    beamSound = loadSound('beam.wav'); // ビーム音を読み込む
 }
 
 // ゲームの初期設定
@@ -256,6 +260,7 @@ function draw() {
     // クリア判定
     if (score >= GOAL_SCORE && !isEndlessMode) {
         sendScore(score); // クリア時にスコアを送信
+        clearSound.play(); // クリア音を再生
         gameState = GAME_STATE.CLEARED;
         showEndScreen('ゲームクリア！', '目的の星に到着した！', true, clearImage);
     }
@@ -435,6 +440,7 @@ function keyPressed() {
 
 // ビームを生成する関数
 function createBeam(targetMeteor) {
+    beamSound.play(); // ビーム音を再生
     const rocketX = width / 2;
     const rocketY = height - 60; // ロケット画像の上端あたり
 
