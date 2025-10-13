@@ -2,6 +2,9 @@
 const GAME_WIDTH = 600;
 const GAME_HEIGHT = 400;
 const GOAL_SCORE = 250000;
+// ★★★ ステップ1でコピーした、ご自身のGASウェブアプリのURLに置き換えてください ★★★
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwA1I_m9x_kinKLKLs_3Fao-YO2_DCA-Z1rN1TzblBkUP9qDxm-XNwJZ77mE_VckWzerQ/exec';
+
 
 let wordLists = []; // 全レベルの単語リストを格納する配列
 let meteors = []; // 隕石を管理する配列
@@ -25,6 +28,10 @@ const GAME_STATE = {
 let gameState = GAME_STATE.USER_INFO_SELECT;
 let currentLevel = 1; // 現在の難易度
 let isEndlessMode = false; // エンドレスモードかどうか
+
+// ユーザー情報を保持する変数
+let userInfo = { grade: '', userClass: '', number: '' };
+
 
 // ローマ字とひらがなの対応表
 // 「ん」や「っ」などの特殊なケースも考慮すると複雑になるため、今回は基本的なマッピングのみ
@@ -123,6 +130,11 @@ function setup() {
         if (gradeSelect.value() === '0学年') {
             alert('学年をえらびましょう');
         } else {
+            // ユーザー情報を保存
+            userInfo.grade = select('#grade-select').value();
+            userInfo.userClass = select('#class-select').value();
+            userInfo.number = select('#number-select').value();
+
             select('#user-info-screen').hide();
             select('#difficulty-screen').show();
             gameState = GAME_STATE.DIFFICULTY_SELECT;
@@ -538,6 +550,9 @@ function showEndScreen(mainText, subText, showContinue, endImage = null) {
 
 // ゲームをリセットする関数
 function resetGame() {
+    // スコアを送信してからリセット処理を行う
+    sendScore(score);
+
     score = 0;
     meteors = [];
     beams = [];
@@ -547,4 +562,32 @@ function resetGame() {
     select('#end-screen').hide(); // 終了画面を非表示
     select('#difficulty-screen').show(); // 難易度選択画面を再表示
     loop(); // 停止していた描画ループを再開
+}
+
+// スコアをGASに送信する非同期関数
+async function sendScore(currentScore) {
+    // URLが設定されていない、またはスコアが0以下の場合は何もしない
+    if (!GAS_URL || GAS_URL === 'ここにGASのウェブアプリURLを貼り付け' || currentScore <= 0) {
+        console.log('スコア送信をスキップしました (URL未設定またはスコアが0)');
+        return;
+    }
+
+    const data = {
+        grade: userInfo.grade.replace('学年', ''),
+        userClass: userInfo.userClass.replace('組', ''),
+        number: userInfo.number.replace('番', ''),
+        score: currentScore
+    };
+
+    try {
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors', // CORSエラーを回避するため
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        console.log('スコア送信成功:', data);
+    } catch (error) {
+        console.error('スコア送信エラー:', error);
+    }
 }
