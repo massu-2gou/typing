@@ -247,6 +247,11 @@ async function fetchRanking(level, overallListSelector, gradeListSelector, grade
         }
         const rankingData = await response.json();
 
+        // GASから返ってきたデータが期待通りかチェック
+        if (!rankingData || !rankingData.overall || !rankingData.grade) {
+            throw new Error('Invalid ranking data received from server.');
+        }
+
         // --- 全体ランキングの表示 ---
         displayRankingList(overallListElement, rankingData.overall, false);
 
