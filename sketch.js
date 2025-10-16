@@ -427,7 +427,7 @@ function createMeteor() {
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
-    const speed = 0.2 + score / 150000; // 隕石の速度をさらに遅く調整
+    const speed = 0.2 + score / 140000; // 隕石の速度をさらに遅く調整
 
     meteors.push({
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
@@ -721,5 +721,6 @@ async function sendScore(currentScore) {
         console.error('スコア送信エラー:', error);
     }
 }
+
 
 
