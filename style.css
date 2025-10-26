@@ -145,3 +145,4 @@ h1 {
 
 .typed { color: #64ff64; } /* 明るい緑 */
 .untyped { color: #ffffff; } /* 白 */
+.typing { color: #a0a0a0; } /* 入力中の文字の色（灰色） */
