@@ -34,6 +34,7 @@ let currentLevel = 1; // 現在の難易度
 let isEndlessMode = false; // エンドレスモードかどうか
 let countdownTimer = 3; // カウントダウン用のタイマー
 let comboCount = 0; // エンドレスモード用のコンボカウンター
+let errorFlashTimer = 0; // タイプミス時の画面フラッシュ用タイマー
 
 // ユーザー情報を保持する変数
 let userInfo = { grade: '', userClass: '', number: '' };
@@ -231,8 +232,8 @@ async function fetchRanking(level, overallListSelector, gradeListSelector, grade
 
     if (!overallListElement || !gradeListElement || !gradeTitleElement) return;
 
-    overallListElement.innerHTML = '<li>読み込み中...</li>';
-    gradeListElement.innerHTML = '<li>読み込み中...</li>';
+    overallListElement.innerHTML = '<li>読みこみ中...</li>';
+    gradeListElement.innerHTML = '<li>読みこみ中...</li>';
     gradeTitleElement.innerHTML = `${userInfo.grade.replace('学年','')}学年内ランキング`;
 
     try {
@@ -292,7 +293,7 @@ function displayRankingList(listElement, ranking, isGradeRanking) {
         if (userRecord && !isUserInTop5) {
             const rank = isGradeRanking ? userRecord.gradeRank : userRecord.rank;
             listElement.innerHTML += `<li style="color: #ffff00;">...</li>`; // 区切り
-            listElement.innerHTML += `<li style="color: #ffff00;">${rank}位: あなたの記録 - ${userRecord.score}点</li>`;
+            listElement.innerHTML += `<li style="color: #ffff00;">${rank}位: あなたのきろく - ${userRecord.score}点</li>`;
         } else {
             // 自分の記録がトップ5に入っているが、リストに表示されていない場合（6位以降だが記録はある場合など）
             // このケースは現状のロジックでは発生しにくいが、念のため
@@ -344,13 +345,21 @@ function draw() {
     handleMeteors();
     updateTypingGuide(); // ガイド表示を更新する
     drawScore();
+
+    // タイプミス時のフラッシュエフェクト
+    if (errorFlashTimer > 0) {
+        // 半透明の赤い四角を画面全体に描画
+        fill(255, 0, 0, errorFlashTimer * 10); 
+        rect(0, 0, width, height);
+        errorFlashTimer--; // タイマーを減らす
+    }
     
     // クリア判定
     if (score >= GOAL_SCORE && !isEndlessMode) {
         sendScore(score); // クリア時にスコアを送信
         clearSound.play(); // クリア音を再生
         gameState = GAME_STATE.CLEARED;
-        showEndScreen('ゲームクリア！', '目的の星に到着した！', true, clearImage);
+        showEndScreen('ゲームクリア！', '目的の 星に とうちゃく した！', true, clearImage);
     }
 }
 
@@ -409,7 +418,12 @@ function handleMeteors() {
         // 隕石が画面外に出たらゲームオーバー
         if (meteor.y > height) {
             sendScore(score); // ゲームオーバー時にスコアを送信
-            showEndScreen('ゲームオーバー', '隕石が地球に衝突した...', false);
+            if (score >= 500000) {
+                // 50万点を超えていれば景品獲得メッセージを表示
+                showEndScreen('ゲームオーバー', 'だが、50万点をこえた！景品をゲット！', false);
+            } else {
+                showEndScreen('ゲームオーバー', 'いんせきが 地球に ぶつかった...', false);
+            }
             gameState = GAME_STATE.GAME_OVER;
             break; // ループを抜ける
         }
@@ -427,7 +441,7 @@ function createMeteor() {
     if (!word) return; // まれに取得できないケースに対応
 
     const x = random(50, width - 50); // 画面の左右に寄りすぎないように
-    const speed = 0.2 + score / 140000; // 隕石の速度をさらに遅く調整
+    const speed = 0.2 + score / 120000; // もっと遅くしたよ
 
     meteors.push({
         fullWord: word,      // 表示する単語全体（例: 'じしん'）
@@ -475,54 +489,45 @@ function keyPressed() {
     // 押されたキーは小文字として扱う
     const typedChar = key.toLowerCase();
 
-    // 画面上のすべての隕石をチェック
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        const meteor = meteors[i];
-        // 既にターゲットになっている隕石は無視
-        if (meteor.isTargeted) continue;
+    // ターゲットにされていない一番手前の隕石を探す
+    const meteor = meteors.find(m => !m.isTargeted);
+    if (!meteor) return; // 対象の隕石がなければ何もしない
 
-        const newTypedRomaji = meteor.typedRomaji + typedChar;
+    const newTypedRomaji = meteor.typedRomaji + typedChar;
 
-        let partialMatch = false;
-        for (const option of meteor.nextRomajiOptions) {
-            if (option === newTypedRomaji) { // ローマ字が完全に一致した場合
+    // 複数のローマ字表記（例: し -> shi, si）をチェック
+    let matchFound = false;
+    for (const option of meteor.nextRomajiOptions) {
+        if (option.startsWith(newTypedRomaji)) {
+            meteor.typedRomaji = newTypedRomaji;
+            matchFound = true;
+
+            // ローマ字が完全に一致した場合（ひらがな1文字分が入力完了）
+            if (option === newTypedRomaji) {
                 const conversion = hiraganaToRomaji(meteor.remainingWord);
-                // ユーザーがデフォルト以外の表記を使った場合、ガイドを更新する
-                if (option !== conversion.romajiOptions[0]) {
-                    const typedLength = meteor.fullWord.length - meteor.remainingWord.length;
-                    const typedHira = meteor.fullWord.substring(0, typedLength);
-                    meteor.guideRomaji = buildGuideRomaji(typedHira) + option + buildGuideRomaji(conversion.remainingHira);
-                }
                 meteor.remainingWord = conversion.remainingHira;
-                meteor.typedRomaji = '';
+                meteor.typedRomaji = ''; // 入力途中の文字をリセット
 
-                if (meteor.remainingWord.length === 0) { // 単語をすべて打ち終えた場合
-                    createBeam(meteor); // 隕石を直接消さずにビームを生成
-                    meteor.isTargeted = true; // この隕石はもうターゲットにしない
-                } else { // 次のひらがなへ進む
-                    const nextConversion = hiraganaToRomaji(meteor.remainingWord);
-                    if (nextConversion) {
-                        meteor.nextRomajiOptions = nextConversion.romajiOptions;
-                    } else {
-                        meteor.nextRomajiOptions = [];
-                    }
+                // 次のひらがなのための準備
+                if (meteor.remainingWord.length > 0) {
+                    meteor.nextRomajiOptions = (hiraganaToRomaji(meteor.remainingWord) || { romajiOptions: [] }).romajiOptions;
+                } else {
+                    // 単語をすべて打ち終えた
+                    createBeam(meteor);
+                    meteor.isTargeted = true;
                 }
-                anyMatch = true;
-                return; // 一致したら他の隕石はチェックしない
-            } else if (option.startsWith(newTypedRomaji)) { // ローマ字の途中まで一致した場合
-                meteor.typedRomaji = newTypedRomaji;
-                partialMatch = true;
-                anyMatch = true;
-                return; // 途中一致でも他の隕石はチェックしない
             }
+            break; // 一致する候補が見つかったらループを抜ける
         }
     }
 
-    // どの隕石のどの候補とも一致しなかった場合（タイプミス）
-    // 入力途中の文字がある一番手前の隕石の入力をリセット
-    const firstMeteor = meteors.find(m => !m.isTargeted);
-    if (firstMeteor && firstMeteor.typedRomaji !== '') {
-        firstMeteor.typedRomaji = '';
+    // どの候補とも一致しなかった場合（タイプミス）
+    if (!matchFound) {
+        // タイプミスがあった場合、現在のひらがなに対する入力をリセット
+        if (meteor.typedRomaji !== '') {
+            meteor.typedRomaji = '';
+        }
+        errorFlashTimer = 15; // 15フレーム（約0.25秒）フラッシュさせる
     }
 }
 
@@ -636,10 +641,17 @@ function updateTypingGuide() {
     hiraGuideElement.html(hiraHTML);
 
     // --- 2. ローマ字ガイドの描画 ---
-    const fullGuide = meteor.guideRomaji;
-    const remainingGuide = buildGuideRomaji(meteor.remainingWord);
-    const typedGuide = buildGuideRomaji(typedHira);
-    const romajiHTML = `<span class="typed">${typedGuide}</span><span class="untyped">${remainingGuide}</span>`;
+    const typedRomajiGuide = buildGuideRomaji(typedHira);
+    const currentHiraRomajiGuide = buildGuideRomaji(fullHira.substring(typedHira.length));
+
+    const typedCharInCurrent = meteor.typedRomaji;
+    const untypedCharInCurrent = currentHiraRomajiGuide.substring(typedCharInCurrent.length);
+
+    const romajiHTML = 
+        `<span class="typed">${typedRomajiGuide}</span>` + // 完了したひらがな部分
+        `<span class="typed">${typedCharInCurrent}</span>` + // 現在入力中の文字
+        `<span class="untyped">${untypedCharInCurrent}</span>`; // これから入力する文字
+
     romajiGuideElement.html(romajiHTML);
 }
 
@@ -721,6 +733,3 @@ async function sendScore(currentScore) {
         console.error('スコア送信エラー:', error);
     }
 }
-
-
-
